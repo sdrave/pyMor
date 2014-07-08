@@ -15,7 +15,7 @@ from pymortests.base import runmodule
 from pymor.gui.glumpy import HAVE_PYSIDE
 
 DEMO_ARGS = (('cg', [0, 0, 0]), ('cg', [1, 2, 3]),
-             ('burgers', ['0.1']),
+             ('burgers', ['0.1']),('burgers', ['--implicit', '0.1']),
              ('burgers_ei', [1, 2, 2, 5, 2, 5]),
              ('cg2', [1, 20, 0]), ('cg_oned', [1, 20, 0]),
              ('thermalblock', ['-e',2, 2, 3, 5]), ('thermalblock', [2, 2, 3, 5]),

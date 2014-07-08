@@ -7,7 +7,7 @@
 
 Usage:
   burgers.py [-hp] [--grid=NI] [--grid-type=TYPE] [--initial-data=TYPE] [--lxf-lambda=VALUE] [--nt=COUNT]
-             [--not-periodic] [--num-flux=FLUX] [--vx=XSPEED] [--vy=YSPEED] EXP
+             [--not-periodic] [--num-flux=FLUX] [--vx=XSPEED] [--vy=YSPEED] [--implicit] EXP
 
 
 Arguments:
@@ -36,6 +36,8 @@ Options:
   --vx=XSPEED            Speed in x-direction [default: 1].
 
   --vy=YSPEED            Speed in y-direction [default: 1].
+
+  --implicit             use implicit instead of explicit euler time stepper
 '''
 
 from __future__ import absolute_import, division, print_function
@@ -72,6 +74,7 @@ def burgers_demo(args):
     args['--vx'] = float(args['--vx'])
     args['--vy'] = float(args['--vy'])
     args['EXP'] = float(args['EXP'])
+    args['--implicit'] = bool(args['--implicit'])
 
     print('Setup Problem ...')
     grid_type_map = {'rect': RectGrid, 'tria': TriaGrid}
@@ -83,7 +86,8 @@ def burgers_demo(args):
     discretizer = discretize_nonlinear_instationary_advection_fv
     discretization, data = discretizer(problem, diameter=m.sqrt(2) / args['--grid'],
                                        num_flux=args['--num-flux'], lxf_lambda=args['--lxf-lambda'],
-                                       nt=args['--nt'], domain_discretizer=domain_discretizer)
+                                       nt=args['--nt'], domain_discretizer=domain_discretizer,
+                                       implicit_stepper=args['--implicit'])
     print(discretization.operator.grid)
 
     print('The parameter type is {}'.format(discretization.parameter_type))

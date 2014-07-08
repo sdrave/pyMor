@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
-from pymor.algorithms.timestepping import ExplicitEulerTimeStepper
+from pymor.algorithms.timestepping import ExplicitEulerTimeStepper, ImplicitEulerTimeStepper
 from pymor.analyticalproblems.advection import InstationaryAdvectionProblem
 from pymor.core import inject_sid
 from pymor.discretizations import InstationaryDiscretization
@@ -18,11 +18,13 @@ from pymor.operators.fv import (nonlinear_advection_lax_friedrichs_operator,
                                 nonlinear_advection_engquist_osher_operator,
                                 nonlinear_advection_simplified_engquist_osher_operator,
                                 L2Product, L2ProductFunctional)
+from pymor.functions import ConstantFunction
 
 
 def discretize_nonlinear_instationary_advection_fv(analytical_problem, diameter=None, nt=100, num_flux='lax_friedrichs',
                                                    lxf_lambda=1., eo_gausspoints=5, eo_intervals=1, num_values=None,
-                                                   domain_discretizer=None, grid=None, boundary_info=None):
+                                                   domain_discretizer=None, grid=None, boundary_info=None,
+                                                   implicit_stepper=False):
     '''Discretizes an |InstationaryAdvectionProblem| using the finite volume method.
 
     Simple explicit Euler time-stepping is used for time-discretization.
@@ -62,6 +64,8 @@ def discretize_nonlinear_instationary_advection_fv(analytical_problem, diameter=
     boundary_info
         A |BoundaryInfo| specifying the boundary types of the grid boundary entities.
         Must be provided if `grid` is provided.
+    implicit_stepper
+        Toggle from default 'True' to use |ImplicitEulerTimeStepper| instead of |ExplicitEulerTimeStepper|
 
     Returns
     -------
@@ -103,7 +107,9 @@ def discretize_nonlinear_instationary_advection_fv(analytical_problem, diameter=
         L = nonlinear_advection_simplified_engquist_osher_operator(grid, boundary_info, p.flux_function,
                                                                    p.flux_function_derivative,
                                                                    dirichlet_data=p.dirichlet_data)
-    F = None if p.rhs is None else L2ProductFunctional(grid, p.rhs)
+
+    rhs = ConstantFunction(dim_domain=2, value=0) if p.rhs is None else p.rhs
+    F = L2ProductFunctional(grid, rhs)
 
     if p.initial_data.parametric:
         def initial_projection(U, mu):
@@ -129,10 +135,11 @@ def discretize_nonlinear_instationary_advection_fv(analytical_problem, diameter=
     else:
         visualizer = None
     parameter_space = p.parameter_space if hasattr(p, 'parameter_space') else None
-    time_stepper = ExplicitEulerTimeStepper(nt=nt)
+    time_stepper = ImplicitEulerTimeStepper(nt=nt) if implicit_stepper else ExplicitEulerTimeStepper(nt=nt)
+    mass = NumpyGenericOperator(np.identity(L.dim_range), L.dim_source, L.dim_range, linear=True) if implicit_stepper else None
 
     discretization = InstationaryDiscretization(operator=L, rhs=F, initial_data=I, T=p.T, products=products,
-                                                time_stepper=time_stepper,
+                                                time_stepper=time_stepper, mass=mass,
                                                 parameter_space=parameter_space, visualizer=visualizer,
                                                 num_values=num_values, name='{}_FV'.format(p.name))
 
