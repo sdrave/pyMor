@@ -5,6 +5,7 @@
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
+import scipy
 
 from pymor.algorithms.timestepping import ExplicitEulerTimeStepper, ImplicitEulerTimeStepper
 from pymor.analyticalproblems.advection import InstationaryAdvectionProblem
@@ -13,7 +14,7 @@ from pymor.discretizations import InstationaryDiscretization
 from pymor.domaindiscretizers import discretize_domain_default
 from pymor.gui.qt import PatchVisualizer, Matplotlib1DVisualizer
 from pymor.la import NumpyVectorArray
-from pymor.operators import NumpyGenericOperator
+from pymor.operators import NumpyGenericOperator, NumpyMatrixOperator
 from pymor.operators.fv import (nonlinear_advection_lax_friedrichs_operator,
                                 nonlinear_advection_engquist_osher_operator,
                                 nonlinear_advection_simplified_engquist_osher_operator,
@@ -136,7 +137,7 @@ def discretize_nonlinear_instationary_advection_fv(analytical_problem, diameter=
         visualizer = None
     parameter_space = p.parameter_space if hasattr(p, 'parameter_space') else None
     time_stepper = ImplicitEulerTimeStepper(nt=nt) if implicit_stepper else ExplicitEulerTimeStepper(nt=nt)
-    mass = NumpyGenericOperator(np.identity(L.dim_range), L.dim_source, L.dim_range, linear=True) if implicit_stepper else None
+    mass = NumpyMatrixOperator(scipy.sparse.identity(L.dim_source)) if implicit_stepper else None
 
     discretization = InstationaryDiscretization(operator=L, rhs=F, initial_data=I, T=p.T, products=products,
                                                 time_stepper=time_stepper, mass=mass,
