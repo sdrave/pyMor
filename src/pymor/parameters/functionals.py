@@ -8,11 +8,12 @@ from numbers import Number
 
 import numpy as np
 
+from pymor.core.pickle import dumps, loads, dumps_function, loads_function, PicklingError
 from pymor.parameters.interfaces import ParameterFunctionalInterface
 
 
 class ProjectionParameterFunctional(ParameterFunctionalInterface):
-    '''|ParameterFunctional| returning a component of the given parameter.
+    """|ParameterFunctional| returning a component of the given parameter.
 
     Parameters
     ----------
@@ -25,7 +26,7 @@ class ProjectionParameterFunctional(ParameterFunctionalInterface):
         `mu[component_name]`.
     name
         Name of the functional.
-    '''
+    """
 
     def __init__(self, component_name, component_shape, coordinates=None, name=None):
         self.name = name
@@ -46,7 +47,7 @@ class ProjectionParameterFunctional(ParameterFunctionalInterface):
 
 
 class GenericParameterFunctional(ParameterFunctionalInterface):
-    '''A wrapper making an arbitrary Python function a |ParameterFunctional|
+    """A wrapper making an arbitrary Python function a |ParameterFunctional|
 
     Parameters
     ----------
@@ -56,7 +57,7 @@ class GenericParameterFunctional(ParameterFunctionalInterface):
         The function to wrap. The function is of the form `mapping(mu)`.
     name
         The name of the functional.
-    '''
+    """
 
     def __init__(self, mapping, parameter_type, name=None):
         self.name = name
@@ -67,9 +68,29 @@ class GenericParameterFunctional(ParameterFunctionalInterface):
         mu = self.parse_parameter(mu)
         return self._mapping(mu)
 
+    def __getstate__(self):
+        s = self.__dict__.copy()
+        try:
+            pickled_mapping = dumps(self._mapping)
+            picklable = True
+        except PicklingError:
+            self.logger.warn('Mapping not picklable, trying pymor.core.pickle.dumps_function.')
+            pickled_mapping = dumps_function(self._mapping)
+            picklable = False
+        s['_mapping'] = pickled_mapping
+        s['_picklable'] = picklable
+        return s
+
+    def __setstate__(self, state):
+        if state.pop('_picklable'):
+            state['_mapping'] = loads(state['_mapping'])
+        else:
+            state['_mapping'] = loads_function(state['_mapping'])
+        self.__dict__.update(state)
+
 
 class ExpressionParameterFunctional(GenericParameterFunctional):
-    '''Turns a Python expression given as a string into a |ParameterFunctional|.
+    """Turns a Python expression given as a string into a |ParameterFunctional|.
 
     Some |NumPy| arithmetic functions like 'sin', 'log', 'min' are supported.
     For a full list see the `functions` class attribute.
@@ -85,7 +106,7 @@ class ExpressionParameterFunctional(GenericParameterFunctional):
         The Python expression for the functional as a string.
     parameter_type
         The |ParameterType| of the |Parameters| the functional takes.
-    '''
+    """
 
     functions = {k: getattr(np, k) for k in {'sin', 'cos', 'tan', 'arcsin', 'arccos', 'arctan',
                                              'sinh', 'cosh', 'tanh', 'arcsinh', 'arccosh', 'arctanh',
@@ -94,15 +115,13 @@ class ExpressionParameterFunctional(GenericParameterFunctional):
 
     def __init__(self, expression, parameter_type, name=None):
         self.expression = expression
-        code = compile(expression, '<dune expression>', 'eval')
-        mapping = lambda mu: eval(code, self.functions, mu)
+        code = compile(expression, '<expression>', 'eval')
+        functions = self.functions
+        mapping = lambda mu: eval(code, functions, mu)
         super(ExpressionParameterFunctional, self).__init__(mapping, parameter_type, name)
 
     def __repr__(self):
         return 'ExpressionParameterFunctional({}, {})'.format(self.expression, repr(self.parameter_type))
 
-    def __getstate__(self):
-        return (self.expression, self.parameter_type, self.name)
-
-    def __setstate__(self, state):
-        self.__init__(*state)
+    def __reduce__(self):
+        return (ExpressionParameterFunctional, (self.expression, self.parameter_type, self.name))

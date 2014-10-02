@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import scipy
 
+
 from pymor.algorithms.timestepping import ExplicitEulerTimeStepper, ImplicitEulerTimeStepper
 from pymor.analyticalproblems.advection import InstationaryAdvectionProblem
 from pymor.core import inject_sid
@@ -26,7 +27,6 @@ def discretize_nonlinear_instationary_advection_fv(analytical_problem, diameter=
                                                    lxf_lambda=1., eo_gausspoints=5, eo_intervals=1, num_values=None,
                                                    domain_discretizer=None, grid=None, boundary_info=None,
                                                    implicit_stepper=False):
-    '''Discretizes an |InstationaryAdvectionProblem| using the finite volume method.
 
     Simple explicit Euler time-stepping is used for time-discretization.
 
@@ -79,7 +79,7 @@ def discretize_nonlinear_instationary_advection_fv(analytical_problem, diameter=
             :boundary_info:  The generated |BoundaryInfo|.
 
 
-    '''
+    """
 
     assert isinstance(analytical_problem, InstationaryAdvectionProblem)
     assert grid is None or boundary_info is not None
@@ -118,15 +118,15 @@ def discretize_nonlinear_instationary_advection_fv(analytical_problem, diameter=
             I = np.sum(I * grid.reference_element.quadrature(order=2)[1], axis=1) * (1. / grid.reference_element.volume)
             I = NumpyVectorArray(I, copy=False)
             return I.lincomb(U).data
-
+        inject_sid(initial_projection, __name__ + '.discretize_nonlinear_instationary_advection_fv.initial_data',
+                   p.initial_data, grid)
         I = NumpyGenericOperator(initial_projection, dim_range=grid.size(0), linear=True,
                                  parameter_type=p.initial_data.parameter_type)
     else:
         I = p.initial_data.evaluate(grid.quadrature_points(0, order=2)).squeeze()
         I = np.sum(I * grid.reference_element.quadrature(order=2)[1], axis=1) * (1. / grid.reference_element.volume)
         I = NumpyVectorArray(I, copy=False)
-
-    inject_sid(I, __name__ + '.discretize_nonlinear_instationary_advection_fv.initial_data', p.initial_data, grid)
+        inject_sid(I, __name__ + '.discretize_nonlinear_instationary_advection_fv.initial_data', p.initial_data, grid)
 
     products = {'l2': L2Product(grid, boundary_info)}
     if grid.dim == 2:

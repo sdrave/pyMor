@@ -1,6 +1,8 @@
 # This file is part of the pyMOR project (http://www.pymor.org).
 # Copyright Holders: Rene Milk, Stephan Rave, Felix Schindler
 # License: BSD 2-Clause License (http://opensource.org/licenses/BSD-2-Clause)
+#
+# Contributors: Michael Laier <m_laie01@uni-muenster.de>
 
 from __future__ import absolute_import, division, print_function
 
@@ -11,7 +13,7 @@ from pymor.tools import float_cmp
 
 
 def flatten_grid(grid):
-    '''This method is used by our visualizers to render n-dimensional grids which cannot
+    """This method is used by our visualizers to render n-dimensional grids which cannot
     be embedded into R^n by duplicating vertices which would have to be mapped to multiple
     points at once. (Think of grids on rectangular domains with identified edges.)
 
@@ -29,7 +31,7 @@ def flatten_grid(grid):
     entity_map
         Maps the indices of the codim-`grid.dim` entities of the flattened
         grid to the indices of the corresponding entities in the original grid.
-    '''
+    """
     # first we determine which vertices are mapped to different coordinates when using the
     # embeddings of their codim-0 superentities
     dim = grid.dim
@@ -38,10 +40,10 @@ def flatten_grid(grid):
     super_entities = grid.superentities(dim, 0)
     superentity_indices = grid.superentity_indices(dim, 0)
     A, B = grid.embeddings(0)
-    ref_el_coordinates  = grid.reference_element.subentity_embedding(dim)[1]
+    ref_el_coordinates = grid.reference_element.subentity_embedding(dim)[1]
     local_coordinates = np.einsum('eij,vj->evi', A, ref_el_coordinates) + B[:, np.newaxis, :]
     critical_vertices = np.unique(subentities[np.logical_not(np.all(float_cmp(global_coordinates[subentities],
-                                                                               local_coordinates), axis=2))])
+                                                                              local_coordinates), axis=2))])
     del A
     del B
 

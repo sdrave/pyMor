@@ -2,17 +2,18 @@
 # This file is part of the pyMOR project (http://www.pymor.org).
 # Copyright Holders: Rene Milk, Stephan Rave, Felix Schindler
 # License: BSD 2-Clause License (http://opensource.org/licenses/BSD-2-Clause)
+#
+# Contributors: Michael Laier <m_laie01@uni-muenster.de>
 
 from __future__ import absolute_import, division, print_function
 
 from pymor.core import ImmutableInterface
 from pymor.domaindescriptions import RectDomain
 from pymor.functions import ConstantFunction
-from pymor.tools import Named
 
 
-class EllipticProblem(ImmutableInterface, Named):
-    '''Linear elliptic analytical problem.
+class EllipticProblem(ImmutableInterface):
+    """Linear elliptic analytical problem.
 
     The problem consists in solving ::
 
@@ -47,12 +48,13 @@ class EllipticProblem(ImmutableInterface, Named):
     diffusion_functions
     diffusion_functionals
     dirichlet_data
-    '''
+    """
 
     def __init__(self, domain=RectDomain(), rhs=ConstantFunction(dim_domain=2),
                  diffusion_functions=(ConstantFunction(dim_domain=2),),
                  diffusion_functionals=None,
                  dirichlet_data=ConstantFunction(value=0, dim_domain=2), name=None):
+        assert rhs.dim_domain == dirichlet_data.dim_domain == diffusion_functions[0].dim_domain
         self.domain = domain
         self.rhs = rhs
         self.diffusion_functions = diffusion_functions

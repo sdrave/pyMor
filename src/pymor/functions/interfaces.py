@@ -7,11 +7,10 @@ from __future__ import absolute_import, division, print_function
 
 from pymor.core import ImmutableInterface, abstractmethod
 from pymor.parameters import Parametric
-from pymor.tools import Named
 
 
-class FunctionInterface(ImmutableInterface, Parametric, Named):
-    '''Interface for |Parameter| dependent analytical functions.
+class FunctionInterface(ImmutableInterface, Parametric):
+    """Interface for |Parameter| dependent analytical functions.
 
     Every function is a map of the form ::
 
@@ -33,13 +32,13 @@ class FunctionInterface(ImmutableInterface, Parametric, Named):
         The dimension d > 0.
     shape_range
         The shape of the function values.
-    '''
+    """
 
     @abstractmethod
     def evaluate(self, x, mu=None):
-        '''Evaluate the function for given argument and |Parameter|.'''
+        """Evaluate the function for given argument and |Parameter|."""
         pass
 
     def __call__(self, x, mu=None):
-        '''Shorthand for :meth:`~FunctionInterface.evaluate`.'''
+        """Shorthand for :meth:`~FunctionInterface.evaluate`."""
         return self.evaluate(x, mu)

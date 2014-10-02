@@ -12,10 +12,12 @@ import logging
 import os
 import time
 
+from pymor.core.defaults import defaults
+
 BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(8)
 
 # The background is set with 40 plus the number of the color, and the foreground with 30
-# These are the sequences need to get colored ouput
+# These are the sequences need to get colored output
 RESET_SEQ = "\033[0m"
 COLOR_SEQ = "\033[1;%dm"
 BOLD_SEQ = "\033[1m"
@@ -114,4 +116,38 @@ def getLogger(module, level=None, filename=None, handler_cls=logging.StreamHandl
         logger.setLevel(LOGLEVEL_MAPPING[level])
     return logger
 
-dummy_logger = getLogger('pymor.dummylogger', level='fatal')
+
+class DummyLogger(object):
+
+    __slots__ = []
+
+    def nop(self, *args, **kwargs):
+        return None
+
+    propagate = False
+    debug = nop
+    info = nop
+    warning = nop
+    error = nop
+    critical = nop
+    log = nop
+    exception = nop
+
+    def isEnabledFor(sefl, lvl):
+        return False
+
+    def getEffectiveLevel(self):
+        return None
+
+    def getChild(self):
+        return self
+
+
+dummy_logger = DummyLogger()
+
+
+@defaults('levels')
+def set_log_levels(levels={'pymor': 'WARN',
+                           'pymor.core': 'WARN'}):
+    for k, v in levels.items():
+        getLogger(k).setLevel(v)

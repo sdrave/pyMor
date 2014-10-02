@@ -9,10 +9,11 @@ import numpy as np
 
 from pymor.parameters.base import Parameter, ParameterType
 from pymor.parameters.interfaces import ParameterSpaceInterface
+from pymor.tools import new_random_state
 
 
 class CubicParameterSpace(ParameterSpaceInterface):
-    '''Simple |ParameterSpace| where each summand is an n-cube.
+    """Simple |ParameterSpace| where each summand is an n-cube.
 
     Parameters
     ----------
@@ -29,7 +30,7 @@ class CubicParameterSpace(ParameterSpaceInterface):
         are tuples (min, max) specifying the minimum and maximum of each
         matrix entry of corresponding |Parameter| component.
         Must be `None` if `minimum` and `maximum` are specified.
-    '''
+    """
 
     def __init__(self, parameter_type, minimum=None, maximum=None, ranges=None):
         assert ranges is None or (minimum is None and maximum is None), 'Must specify minimum, maximum or ranges'
@@ -49,7 +50,7 @@ class CubicParameterSpace(ParameterSpaceInterface):
                    for k in self.parameter_type)
 
     def sample_uniformly(self, counts):
-        '''Iterator sampling uniformly |Parameters| from the space.'''
+        """Iterator sampling uniformly |Parameters| from the space."""
         if isinstance(counts, dict):
             pass
         elif isinstance(counts, (tuple, list, np.ndarray)):
@@ -63,12 +64,14 @@ class CubicParameterSpace(ParameterSpaceInterface):
             yield Parameter(((k, np.array(v).reshape(shp))
                              for k, v, shp in izip(self.parameter_type, i, self.parameter_type.values())))
 
-    def sample_randomly(self, count=None):
-        '''Iterator sampling random |Parameters| from the space.'''
+    def sample_randomly(self, count=None, random_state=None, seed=None):
+        """Iterator sampling random |Parameters| from the space."""
+        assert not random_state or seed is None
         c = 0
         ranges = self.ranges
+        random_state = random_state or new_random_state(seed)
         while count is None or c < count:
-            yield Parameter(((k, np.random.uniform(ranges[k][0], ranges[k][1], shp))
+            yield Parameter(((k, random_state.uniform(ranges[k][0], ranges[k][1], shp))
                              for k, shp in self.parameter_type.iteritems()))
             c += 1
 

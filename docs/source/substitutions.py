@@ -26,8 +26,8 @@ interfaces = '''
 .. |Grid| replace:: :class:`Grid <pymor.grids.interfaces.AffineGridInterface>`
 .. |Grids| replace:: :class:`Grids <pymor.grids.interfaces.AffineGridInterface>`
 .. |ImmutableInterface| replace:: :class:`~pymor.core.interfaces.ImmutableInterface`
-.. |LincombOperators| replace:: :class:`LincombOperators <pymor.operators.interfaces.LincombOperatorInterface>`
-.. |LincombOperator| replace:: :class:`LincombOperator <pymor.operators.interfaces.LincombOperatorInterface>`
+.. |LincombOperators| replace:: :class:`LincombOperators <pymor.operators.interfaces.LincombOperator>`
+.. |LincombOperator| replace:: :class:`LincombOperator <pymor.operators.basic.LincombOperator>`
 .. |Operators| replace:: :class:`Operators <pymor.operators.interfaces.OperatorInterface>`
 .. |Operator| replace:: :class:`Operator <pymor.operators.interfaces.OperatorInterface>`
 .. |ParameterFunctionals| replace:: :class:`ParameterFunctionals <pymor.parameters.interfaces.ParameterFunctionalInterface>`
@@ -42,9 +42,6 @@ interfaces = '''
 
 # substitutions for the most important classes and methods in pyMOR
 common = '''
-.. |defaults| replace:: :class:`defaults <pymor.defaults.Defaults>`
-.. |default| replace:: :class:`default <pymor.defaults.Defaults>`
-
 .. |analytical problem| replace:: :mod:`analytical problem <pymor.analyticalproblems>`
 .. |analytical problems| replace:: :mod:`analytical problems <pymor.analyticalproblems>`
 
@@ -78,6 +75,7 @@ common = '''
 .. |EmpiricalInterpolatedOperator| replace:: :class:`~pymor.operators.ei.EmpiricalInterpolatedOperator`
 .. |EmpiricalInterpolatedOperators| replace:: :class:`EmpiricalInterpolatedOperators <pymor.operators.ei.EmpiricalInterpolatedOperator>`
 .. |Concatenation| replace:: :class:`~pymor.operators.constructions.Concatenation`
+.. |VectorSpace| replace:: :class:`~pymor.la.interfaces.VectorSpace`
 
 .. |StationaryDiscretization| replace:: :class:`~pymor.discretizations.basic.StationaryDiscretization`
 .. |StationaryDiscretizations| replace:: :class:`StationaryDiscretizations <pymor.discretizations.basic.StationaryDiscretization>`
@@ -100,6 +98,8 @@ common = '''
 .. |Array| replace:: :class:`NumPy array <numpy.ndarray>`
 
 .. |OrderedDict| replace:: :class:`~collections.OrderedDict`
+
+.. |invert_options| replace:: :meth:`invert options <pymor.operators.interfaces.OperatorInterface.invert_options>`
 
 '''
 

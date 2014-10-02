@@ -2,8 +2,10 @@
 # This file is part of the pyMOR project (http://www.pymor.org).
 # Copyright Holders: Rene Milk, Stephan Rave, Felix Schindler
 # License: BSD 2-Clause License (http://opensource.org/licenses/BSD-2-Clause)
+#
+# Contributors: Michael Laier <m_laie01@uni-muenster.de>
 
-'''Burgers with EI demo.
+"""Burgers with EI demo.
 
 Usage:
   burgers_ei.py [options] EXP_MIN EXP_MAX EI_SNAPSHOTS EISIZE SNAPSHOTS RBSIZE
@@ -60,7 +62,7 @@ Options:
   --vx=XSPEED                     Speed in x-direction [default: 1].
 
   --vy=YSPEED                     Speed in y-direction [default: 1].
-'''
+"""
 
 from __future__ import absolute_import, division, print_function
 
@@ -85,8 +87,8 @@ from pymor.la import NumpyVectorArray
 from pymor.reductors import reduce_generic_rb, reduce_to_subbasis
 
 
-core.getLogger('pymor.algorithms').setLevel('INFO')
-core.getLogger('pymor.discretizations').setLevel('INFO')
+core.set_log_levels({'pymor.algorithms': 'INFO',
+                     'pymor.discretizations': 'INFO'})
 
 
 def burgers_demo(args):

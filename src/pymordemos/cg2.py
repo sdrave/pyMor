@@ -3,7 +3,7 @@
 # Copyright Holders: Rene Milk, Stephan Rave, Felix Schindler
 # License: BSD 2-Clause License (http://opensource.org/licenses/BSD-2-Clause)
 
-'''Proof of concept for solving the poisson equation in 2D using linear finite elements and our grid interface
+"""Proof of concept for solving the poisson equation in 2D using linear finite elements and our grid interface
 
 Usage:
     cg2.py PROBLEM-NUMBER N PLOT
@@ -17,7 +17,7 @@ Arguments:
 
 Options:
     -h, --help    this message
-'''
+"""
 
 from __future__ import absolute_import, division, print_function
 
@@ -26,13 +26,13 @@ from docopt import docopt
 import numpy as np
 
 from pymor.analyticalproblems import EllipticProblem
-from pymor.core import getLogger
+from pymor.core import set_log_levels
 from pymor.discretizers import discretize_elliptic_cg
 from pymor.domaindescriptions import RectDomain
 from pymor.functions import GenericFunction
 from pymor.parameters import CubicParameterSpace, ProjectionParameterFunctional, GenericParameterFunctional
 
-getLogger('pymor.discretizations').setLevel('INFO')
+set_log_levels({'pymor.discretizations': 'INFO'})
 
 
 def cg2_demo(nrhs, n, plot):
@@ -60,7 +60,7 @@ def cg2_demo(nrhs, n, plot):
 
     print('The parameter type is {}'.format(discretization.parameter_type))
 
-    U = discretization.type_solution.empty(discretization.dim_solution)
+    U = discretization.solution_space.empty()
     for mu in parameter_space.sample_uniformly(10):
         U.append(discretization.solve(mu))
 

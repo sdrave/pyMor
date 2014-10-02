@@ -7,45 +7,41 @@ Getting started
 Installation
 ------------
 
-Before trying out pyMOR, you need to install it. At this point we do
-not provide release tarballs via PyPI, instead you should simply
-clone our git repository via ::
+Before trying out pyMOR, you need to install it. We provide packages for Ubuntu
+via our PPA::
 
-    git clone https://github.com/pymor/pymor
+        sudo apt-add-repository ppa:pymor/stable
+        sudo apt-get update
+        sudo apt-get install python-pymor python-pymor-demos python-pymor-doc
 
-and then chekout the version of pyMOR you want to work with, e.g. ::
-
-    git checkout 0.2.0
-
-which is the current stable version.
-
-While pyMOR itself is written in pure Python (with the exception of few `Cython
-<http://cython.org>`_ extension modules) and does not really require
-installation, it depends on several Python packages in recent versions (most
-notably `NumPy <http://www.numpy.org>`_, `SciPy <http://www.scipy.org>`_,
-`matplotlib <http://matplotlib.org>`_ and `PySide <http//www.pyside.org>`_)
-which are not so easy to install. For this reason we provide an installation
-script which will install all dependencies into a dedicated `virtualenv
-<http://virtualenv.org>`_. It will also install pyMOR itself into the
-virtualenv or add the repository to its ``PYTHONPATH``. For further details
-please refer to the `README
-<https://github.com/pymor/pymor/blob/master/README.markdown>`_ file in the
-pyMOR repository.
+Daily snapshots can be installed by using the ``pymor/daily`` PPA instead of
+``pymor/stable``. The current release can also be installed via `pip
+<http://pip-installer.org>`. Please take a look at our `README
+<https://github.com/pyMor/pyMor#installation-into-a-virtualenv>` file for
+further details. The `README
+<https://github.com/pyMor/pyMor#setting-up-an-environment-for-pymor-development>`
+also contains instructions for setting up a development environment for working
+on pyMOR itself.
 
 
 Trying it out
 -------------
 
-While we consider pyMOR itself as a library for building MOR
-applications, we ship a few example scripts with pyMOR itself. These
-can be found in the ``src/pymordemos`` directory. Try launching
-the thermalblock demo application in this directory by executing ::
+While we consider pyMOR itself as a library for building MOR applications, we
+ship a few example scripts with pyMOR itself. These can be found in the
+``src/pymordemos`` directory of the source repository.  Try launching one of
+them using the ``pymor-demo`` script provided by the ``python-pymor-demos``
+package::
+
+    pymor-demo thermalblock --with-estimator --plot-err --plot-solutions 3 2 3 32
+
+The demo scripts can also be directly launched from the source tree::
 
     ./thermalblock.py --with-estimator --plot-err --plot-solutions 3 2 3 32
 
 This will solve and reduce the so called thermalblock problem using
 the reduced basis method with a greedy basis generation algorithm.
-The thermalblock problem consists of solving the stationary diffusion
+The thermalblock problem consists in solving the stationary diffusion
 problem ::
 
     - ∇ ⋅ [ d(x, μ) ∇ u(x, μ) ] = 1     for x in Ω
@@ -73,8 +69,9 @@ Running ``thermalblock.py`` will first produce plots of two detailed
 solutions of the problem for different randomly chosen parameters
 using linear finite elements. (The size of the grid can be controlled
 via the ``--grid`` parameter. The randomly chosen parameters will
-actually always be the same for each run, since a fixed seed for
-the random generator is chosen in :mod:`pymor.defaults`.)
+actually always be the same for each run, since a the random generator
+is initialized with a fixed default seed in
+:func:`~pymor.tools.random.new_random_state`.)
 
 After closing the window, the reduced basis for model order reduction
 is generated using a greedy search algorithm with error estimator.
@@ -100,7 +97,7 @@ programming as well as working with |NumPy|. (Note that our code will
 differ a bit from ``thermalblock.py`` as we will hardcode the various
 options the script offers and leave out some features.)
 
-First, start a Pyhton shell, we recommend using
+First, start a Python shell, we recommend using
 `IPython <http://ipython.org>`_, which is also automatically installed
 into the pyMOR virtualenv by the install script ::
 
@@ -116,10 +113,10 @@ inside the IPython shell.
 To see what is going on, we will first adjust a few log levels of
 pyMOR's logging facility:
 
->>> from pymor.core import getLogger
->>> getLogger('pymor.algorithms').setLevel('INFO')
->>> getLogger('pymor.discretizations').setLevel('INFO')
-Loading pymor version (0, 1, 0, 861, 'g79027f4')
+>>> from pymor.core import set_log_levels
+>>> set_log_levels({'pymor.algorithms': 'INFO',
+...                 'pymor.discretizations': 'INFO'})
+Loading pymor version 0.3.0
 
 First we will instantiate a class describing the analytical problem
 we want so solve. In this case, a 
@@ -169,8 +166,9 @@ Each class in pyMOR that describes a |Parameter| dependent mathematical
 object, like the |StationaryDiscretization| in our case, derives from
 |Parametric| and determines the |Parameters| it expects during :meth:`__init__`
 by calling :meth:`~pymor.parameters.base.Parametric.build_parameter_type`.
-The resulting |ParameterType| is stored in the object's :attr:`parameter_type`
-attribute. Let us have a look:
+The resulting |ParameterType| is stored in the object's
+:attr:`~pymor.parameters.base.Parametric.parameter_type` attribute. Let us
+have a look:
 
 >>> print(d.parameter_type)
 {diffusion: (2, 3)}
@@ -190,11 +188,12 @@ use :func:`~pymor.algorithms.basisextension.gram_schmidt_basis_extension` and
 :func:`~pymor.reductors.linear.reduce_stationary_affine_linear`. The latter
 will also assemble an error estimator to estimate the reduction error. This
 will significantly speed up the basis generation, as we will only need to
-solve high-dimensionally for those parameters in the training set which are
-actually selected for basis extension. To control the condition of the
-reduced system matrix, we must ensure that the generated basis is orthonormal
-w.r.t. the H1-product on the solution space. For this we provide the basis
-extension algorithm with the :attr:`h1_product` attribute of the discretization.
+solve the high-dimensional problem for those parameters in the training set
+which are actually selected for basis extension. To control the condition of
+the reduced system matrix, we must ensure that the generated basis is
+orthonormal w.r.t. the H1-product on the solution space. For this we provide
+the basis extension algorithm with the :attr:`h1_product` attribute of the
+discretization.
 
 >>> from functools import partial
 >>> from pymor.algorithms.greedy import greedy
@@ -202,10 +201,9 @@ extension algorithm with the :attr:`h1_product` attribute of the discretization.
 >>> from pymor.reductors.linear import reduce_stationary_affine_linear
 >>> extension_algorithm = partial(gram_schmidt_basis_extension, product=d.h1_product)
 
-Moreover, we need to select a
-|Parameter| training set. The discretization ``d`` already comes with a
-|ParameterSpace| it has obtained from the analytical problem. We can sample
-our parameters from this space, which is a
+Moreover, we need to select a |Parameter| training set. The discretization
+``d`` already comes with a |ParameterSpace| it has obtained from the analytical
+problem. We can sample our parameters from this space, which is a
 :class:`~pymor.parameters.spaces.CubicParameterSpace`. E.g.:
 
 >>> samples = list(d.parameter_space.sample_uniformly(2))
@@ -247,7 +245,7 @@ vectors. The reduced basis is stored in the ``'basis'`` item.
 >>> rb = greedy_data['basis']
 
 All vectors in pyMOR are stored in so called |VectorArrays|. For example
-the solution ``U`` computed above is given as a |VectorArray| of lenght 1.
+the solution ``U`` computed above is given as a |VectorArray| of length 1.
 For the reduced basis we have:
 
 >>> print(type(rb))
@@ -264,7 +262,7 @@ method:
 >>> import numpy as np
 >>> gram_matrix = d.h1_product.apply2(rb, rb, pairwise=False)
 >>> print(np.max(np.abs(gram_matrix - np.eye(32))))
-4.93285967629e-14
+2.17350009518e-15
 
 Looks good! We can now solve the reduced model for the same parameter as above.
 The result is a vector of coefficients w.r.t. the reduced basis, which is

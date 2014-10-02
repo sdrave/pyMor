@@ -2,8 +2,10 @@
 # This file is part of the pyMOR project (http://www.pymor.org).
 # Copyright Holders: Rene Milk, Stephan Rave, Felix Schindler
 # License: BSD 2-Clause License (http://opensource.org/licenses/BSD-2-Clause)
+#
+# Contributors: Michael Laier <m_laie01@uni-muenster.de>
 
-'''Thermalblock with GUI demo
+"""Thermalblock with GUI demo
 
 Usage:
   thermalblock_gui.py [-h] [--estimator-norm=NORM] [--grid=NI] [--testing]
@@ -30,7 +32,7 @@ Options:
   --testing              load the gui and exit right away (for functional testing)
 
   -h, --help             Show this message.
-'''
+"""
 
 from __future__ import absolute_import, division, print_function
 import sys
@@ -41,6 +43,7 @@ import math as m
 import numpy as np
 from PySide import QtGui
 import OpenGL
+
 OpenGL.ERROR_ON_COPY = True
 
 import pymor.core as core
@@ -50,9 +53,10 @@ from pymor.analyticalproblems import ThermalBlockProblem
 from pymor.discretizers import discretize_elliptic_cg
 from pymor.gui.glumpy import ColorBarWidget, GlumpyPatchWidget
 from pymor.reductors.linear import reduce_stationary_affine_linear
+from pymor import gui
 
-core.getLogger('pymor.algorithms').setLevel('DEBUG')
-core.getLogger('pymor.discretizations').setLevel('DEBUG')
+core.set_log_levels({'pymor.algorithms': 'INFO',
+                     'pymor.discretizations': 'INFO'})
 
 PARAM_STEPS = 10
 PARAM_MIN = 0.1
@@ -82,6 +86,7 @@ class ParamRuler(QtGui.QWidget):
             spin.isEnabled = enable
 
 
+# noinspection PyShadowingNames
 class SimPanel(QtGui.QWidget):
     def __init__(self, parent, sim):
         super(SimPanel, self).__init__(parent)
@@ -121,6 +126,7 @@ class AllPanel(QtGui.QWidget):
         self.setLayout(box)
 
 
+# noinspection PyShadowingNames
 class RBGui(QtGui.QMainWindow):
     def __init__(self, args):
         super(RBGui, self).__init__()
@@ -137,6 +143,7 @@ class RBGui(QtGui.QMainWindow):
         self.setCentralWidget(self.panel)
 
 
+# noinspection PyShadowingNames
 class SimBase(object):
     def __init__(self, args):
         self.args = args
@@ -147,6 +154,7 @@ class SimBase(object):
         self.grid = pack['grid']
 
 
+# noinspection PyShadowingNames,PyShadowingNames
 class ReducedSim(SimBase):
 
     def __init__(self, args):
@@ -171,6 +179,7 @@ class ReducedSim(SimBase):
         return self.reconstructor.reconstruct(self.rb_discretization.solve(mu))
 
 
+# noinspection PyShadowingNames
 class DetailedSim(SimBase):
 
     def __init__(self, args):
@@ -182,15 +191,12 @@ class DetailedSim(SimBase):
 
 
 if __name__ == '__main__':
-    app = QtGui.QApplication(sys.argv)
     args = docopt(__doc__)
-    win = RBGui(args)
-    win.show()
     testing = args['--testing']
     if not testing:
+        app = QtGui.QApplication(sys.argv)
+        win = RBGui(args)
+        win.show()
         sys.exit(app.exec_())
 
-    win.panel.detailed_panel.solve_update()
-    win.panel.reduced_panel.solve_update()
-    app.exit(0)
-
+    gui.qt.launch_qt_app(lambda _: RBGui(args), block=False)
