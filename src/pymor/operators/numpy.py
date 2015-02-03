@@ -18,6 +18,7 @@ from __future__ import absolute_import, division, print_function
 
 from itertools import izip
 
+from numbers import Number
 import numpy as np
 from scipy.sparse import issparse
 from scipy.io import mmwrite, savemat
@@ -27,6 +28,7 @@ from pymor.core.exceptions import InversionError
 from pymor.core.interfaces import abstractmethod
 from pymor.la import numpysolvers
 from pymor.la.numpyvectorarray import NumpyVectorArray, NumpyVectorSpace
+from pymor.la.listvectorarray import ListVectorArray, NumpyVector
 from pymor.operators.basic import OperatorBase
 
 
@@ -201,28 +203,30 @@ class NumpyMatrixOperator(NumpyMatrixBasedOperator):
     def as_vector(self, mu=None):
         if self.source.dim != 1 and self.range.dim != 1:
             raise TypeError('This operator does not represent a vector or linear functional.')
-        return NumpyVectorArray(self._matrix.ravel(), copy=True)
+        return ListVectorArray([NumpyVector(self._matrix.ravel(), copy=True)], copy=False)
 
     def apply(self, U, ind=None, mu=None):
         assert U in self.source
         assert U.check_ind(ind)
-        U_array = U._array[:U._len] if ind is None else U._array[ind]
-        return NumpyVectorArray(self._matrix.dot(U_array.T).T, copy=False)
+        vectors = U._list if ind is None else [U._list[ind]] if isinstance(ind, Number) else [U._list[i] for i in ind]
+        return ListVectorArray([NumpyVector(self._matrix.dot(v.data), copy=False) for v in vectors],
+                               subtype=self.range.subtype, copy=False)
 
     def apply_adjoint(self, U, ind=None, mu=None, source_product=None, range_product=None):
-        assert U in self.range
-        assert U.check_ind(ind)
-        assert source_product is None or source_product.source == source_product.range == self.source
-        assert range_product is None or range_product.source == range_product.range == self.range
-        if range_product:
-            PrU = range_product.apply(U, ind=ind).data
-        else:
-            PrU = U.data if ind is None else U.data[ind]
-        ATPrU = NumpyVectorArray(self._matrix.T.dot(PrU.T).T, copy=False)
-        if source_product:
-            return source_product.apply_inverse(ATPrU)
-        else:
-            return ATPrU
+        raise NotImplementedError
+        # assert U in self.range
+        # assert U.check_ind(ind)
+        # assert source_product is None or source_product.source == source_product.range == self.source
+        # assert range_product is None or range_product.source == range_product.range == self.range
+        # if range_product:
+        #     PrU = range_product.apply(U, ind=ind).data
+        # else:
+        #     PrU = U.data if ind is None else U.data[ind]
+        # ATPrU = NumpyVectorArray(self._matrix.T.dot(PrU.T).T, copy=False)
+        # if source_product:
+        #     return source_product.apply_inverse(ATPrU)
+        # else:
+        #     return ATPrU
 
     def apply_inverse(self, U, ind=None, mu=None, options=None):
         assert U in self.range
@@ -231,12 +235,13 @@ class NumpyMatrixOperator(NumpyMatrixBasedOperator):
             if (self.source.dim == 0
                     or isinstance(options, str) and options.startswith('least_squares')
                     or isinstance(options, dict) and options['type'].startswith('least_squares')):
-                return NumpyVectorArray(np.zeros((U.len_ind(ind), self.source.dim)))
+                return self.source.zeros(U.len_ind(ind))
             else:
                 raise InversionError
-        U = U.data if ind is None else \
-            U.data[ind] if hasattr(ind, '__len__') else U.data[ind:ind + 1]
-        return NumpyVectorArray(numpysolvers.apply_inverse(self._matrix, U, options=options), copy=False)
+        vectors = U._list if ind is None else [U._list[ind]] if isinstance(ind, Number) else [U._list[i] for i in ind]
+        return ListVectorArray([NumpyVector(numpysolvers.apply_inverse(self._matrix, v.data.reshape((1, -1)), options=options).reshape((-1,)), copy=False)
+                                for v in vectors],
+                               subtype=self.source.subtype, copy=False)
 
     def projected_to_subbasis(self, dim_source=None, dim_range=None, name=None):
         """Project the operator to a subbasis.

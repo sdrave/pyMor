@@ -12,6 +12,7 @@ from scipy.sparse import issparse
 
 from pymor.core import NUMPY_INDEX_QUIRK
 from pymor.la.interfaces import VectorArrayInterface, VectorSpace
+from pymor.la.listvectorarray import ListVectorArray, NumpyVector
 from pymor.tools.floatcmp import float_cmp
 
 
@@ -363,5 +364,8 @@ class NumpyVectorArray(VectorArrayInterface):
         return 'NumpyVectorArray({})'.format(self._array[:self._len].__str__())
 
 
+# def NumpyVectorSpace(dim):
+#     return VectorSpace(NumpyVectorArray, dim)
+
 def NumpyVectorSpace(dim):
-    return VectorSpace(NumpyVectorArray, dim)
+    return VectorSpace(ListVectorArray, (NumpyVector, dim))

@@ -18,7 +18,7 @@ class GenericRBReconstructor(BasicInterface):
 
     def reconstruct(self, U):
         """Reconstruct high-dimensional vector from reduced vector `U`."""
-        assert isinstance(U, NumpyVectorArray)
+        # assert isinstance(U, NumpyVectorArray)
         return self.RB.lincomb(U.data)
 
     def restricted_to_subbasis(self, dim):

@@ -14,6 +14,7 @@ import numpy as np
 from pymor.la import genericsolvers
 from pymor.la.interfaces import VectorArrayInterface
 from pymor.la.numpyvectorarray import NumpyVectorArray, NumpyVectorSpace
+from pymor.la.listvectorarray import ListVectorArray, NumpyVector
 from pymor.operators.interfaces import OperatorInterface
 
 
@@ -140,9 +141,9 @@ class OperatorBase(OperatorInterface):
             else:
                 if range_basis is None:
                     V = self.apply(source_basis)
-                    if self.range.type == NumpyVectorArray:
+                    if self.range.type == ListVectorArray and self.range.subtype[0] == NumpyVector:
                         from pymor.operators.numpy import NumpyMatrixOperator
-                        return NumpyMatrixOperator(V.data.T, name=name)
+                        return NumpyMatrixOperator(np.array([v.data for v in V._list]).T, name=name)
                     else:
                         from pymor.operators.constructions import VectorArrayOperator
                         return VectorArrayOperator(V, transposed=False, copy=False, name=name)
