@@ -6,15 +6,14 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
+from pymor.algorithms.gram_schmidt import gram_schmidt
 from pymor.core.interfaces import ImmutableInterface
 from pymor.core.logger import getLogger
-from pymor.la.numpyvectorarray import NumpyVectorSpace
-from pymor.la.basic import induced_norm
-from pymor.la.gram_schmidt import gram_schmidt
 from pymor.operators.basic import OperatorBase
-from pymor.operators.constructions import LincombOperator
+from pymor.operators.constructions import LincombOperator, induced_norm
 from pymor.operators.ei import EmpiricalInterpolatedOperator
 from pymor.reductors.basic import GenericRBReconstructor
+from pymor.vectorarrays.numpy import NumpyVectorSpace
 
 
 def reduce_residual(operator, functional=None, RB=None, product=None, extends=None):
@@ -31,7 +30,7 @@ def reduce_residual(operator, functional=None, RB=None, product=None, extends=No
     of this range spaces and then returns the Petrov-Galerkin projection ::
 
         projected_riesz_residual
-            === riesz_residual.projected(source_basis=RB, range_basis=residual_range)
+            === riesz_residual.projected(range_basis=residual_range, source_basis=RB)
 
     of the `riesz_residual` operator. Given an reduced basis coefficient vector `u`,
     the dual norm of the residual can then be computed as ::
@@ -79,7 +78,7 @@ def reduce_residual(operator, functional=None, RB=None, product=None, extends=No
     if RB is None:
         RB = operator.source.empty()
 
-    if extends and isinstance(extends[0], NonProjectedResiudalOperator):
+    if extends and isinstance(extends[0], NonProjectedResidualOperator):
         extends = None
     if extends:
         residual_range = extends[1].RB.copy()
@@ -126,8 +125,8 @@ def reduce_residual(operator, functional=None, RB=None, product=None, extends=No
             collect_operator_ranges(operator, i, new_residual_range)
         except CollectionError as e:
             logger.warn('Cannot compute range of {}. Evaluation will be slow.'.format(e.op))
-            operator = operator.projected(RB, None)
-            return (NonProjectedResiudalOperator(operator, functional, product),
+            operator = operator.projected(None, RB)
+            return (NonProjectedResidualOperator(operator, functional, product),
                     NonProjectedReconstructor(product),
                     {})
 
@@ -142,8 +141,8 @@ def reduce_residual(operator, functional=None, RB=None, product=None, extends=No
         residual_range_dims.append(len(residual_range))
 
     logger.info('Projecting ...')
-    operator = operator.projected(RB, residual_range, product=None)  # the product always cancels out.
-    functional = functional.projected(residual_range, None, product=None)
+    operator = operator.projected(residual_range, RB, product=None)  # the product always cancels out.
+    functional = functional.projected(None, residual_range, product=None)
 
     return (ResidualOperator(operator, functional),
             GenericRBReconstructor(residual_range),
@@ -172,34 +171,34 @@ class ResidualOperator(OperatorBase):
                 V.axpy(-1., F)
         return V
 
-    def projected_to_subbasis(self, dim_source=None, dim_range=None, name=None):
-        return ResidualOperator(self.operator.projected_to_subbasis(dim_source, dim_range),
-                                self.functional.projected_to_subbasis(dim_range, None),
+    def projected_to_subbasis(self, dim_range=None, dim_source=None, name=None):
+        return ResidualOperator(self.operator.projected_to_subbasis(dim_range, dim_source),
+                                self.functional.projected_to_subbasis(None, dim_range),
                                 name=name)
 
 
-class NonProjectedResiudalOperator(ResidualOperator):
+class NonProjectedResidualOperator(ResidualOperator):
     """Returned by :func:`reduce_residual`.
 
     Not to be used directly.
     """
 
     def __init__(self, operator, functional, product):
-        super(NonProjectedResiudalOperator, self).__init__(operator, functional)
+        super(NonProjectedResidualOperator, self).__init__(operator, functional)
         self.product = product
 
     def apply(self, U, ind=None, mu=None):
-        R = super(NonProjectedResiudalOperator, self).apply(U, ind=ind, mu=mu)
+        R = super(NonProjectedResidualOperator, self).apply(U, ind=ind, mu=mu)
         if self.product:
             R_riesz = self.product.apply_inverse(R)
-            return R_riesz * (np.sqrt(R_riesz.dot(R, pairwise=True)) / R_riesz.l2_norm())[0]
+            return R_riesz * (np.sqrt(R_riesz.dot(R)) / R_riesz.l2_norm())[0]
         else:
             return R
 
     def projected_to_subbasis(self, dim_source=None, dim_range=None, name=None):
         product = self.product.projected_to_subbasis(dim_range, dim_range) if self.product is not None else None
-        return ResidualOperator(self.operator.projected_to_subbasis(dim_source, dim_range),
-                                self.functional.projected_to_subbasis(dim_range, None),
+        return ResidualOperator(self.operator.projected_to_subbasis(dim_range, dim_source),
+                                self.functional.projected_to_subbasis(None, dim_range),
                                 product,
                                 name=name)
 

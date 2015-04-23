@@ -1,6 +1,9 @@
 # This file is part of the pyMOR project (http://www.pymor.org).
 # Copyright Holders: Rene Milk, Stephan Rave, Felix Schindler
 # License: BSD 2-Clause License (http://opensource.org/licenses/BSD-2-Clause)
+#
+# Contributors: Andreas Buhr <andreas@andreasbuhr.de>
+#               Michael Schaefer <michael.schaefer@uni-muenster.de>
 
 """ This module provides a few methods and classes for visualizing data
 associated to grids. We use the `PySide <http://www.pyside.org>`_ bindings
@@ -30,9 +33,9 @@ from pymor.grids.rect import RectGrid
 from pymor.grids.tria import TriaGrid
 from pymor.gui.gl import GLPatchWidget, ColorBarWidget, HAVE_GL
 from pymor.gui.matplotlib import Matplotlib1DWidget, MatplotlibPatchWidget, HAVE_MATPLOTLIB
-from pymor.la.interfaces import VectorArrayInterface
-from pymor.la.numpyvectorarray import NumpyVectorArray
 from pymor.tools.vtkio import HAVE_PYVTK, write_vtk
+from pymor.vectorarrays.interfaces import VectorArrayInterface
+from pymor.vectorarrays.numpy import NumpyVectorArray
 
 
 if HAVE_PYSIDE:

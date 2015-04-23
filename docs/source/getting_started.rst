@@ -78,7 +78,7 @@ is generated using a greedy search algorithm with error estimator.
 The third parameter ``SNAPSHOTS`` of ``thermalblock.py`` determines how many
 different values per parameter component μ_ij should be considered.
 I.e. the parameter training set for basis generation will have the
-size ``(XBLOCKS x YBLOCKS)^SNAPSHOTS``. After the basis of size 32 (the
+size ``SNAPSHOTS^(XBLOCKS x YBLOCKS)``. After the basis of size 32 (the
 last parameter) has been computed, the quality obtained reduced model
 (on the 32-dimensional reduced basis space) is evaluated by comparing the
 solutions of the reduced and detailed models for new randomly chosen
@@ -249,7 +249,7 @@ the solution ``U`` computed above is given as a |VectorArray| of length 1.
 For the reduced basis we have:
 
 >>> print(type(rb))
-<class 'pymor.la.numpyvectorarray.NumpyVectorArray'>
+<class 'pymor.vectorarrays.numpy.NumpyVectorArray'>
 >>> print(len(rb))
 32
 >>> print(rb.dim)
@@ -260,7 +260,7 @@ the H1-product. For this we use the :meth:`~pymor.operators.interfaces.OperatorI
 method:
 
 >>> import numpy as np
->>> gram_matrix = d.h1_product.apply2(rb, rb, pairwise=False)
+>>> gram_matrix = d.h1_product.apply2(rb, rb)
 >>> print(np.max(np.abs(gram_matrix - np.eye(32))))
 1.24982272795e-13
 

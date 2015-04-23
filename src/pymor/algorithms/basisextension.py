@@ -24,9 +24,9 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
+from pymor.algorithms.gram_schmidt import gram_schmidt
+from pymor.algorithms.pod import pod
 from pymor.core.exceptions import ExtensionError
-from pymor.la.gram_schmidt import gram_schmidt
-from pymor.la.pod import pod
 
 
 def trivial_basis_extension(basis, U, copy_basis=True, copy_U=True):
@@ -174,9 +174,9 @@ def pod_basis_extension(basis, U, count=1, copy_basis=True, product=None, orthon
     new_basis = basis.copy() if copy_basis else basis
 
     if product is None:
-        U_proj_err = U - basis.lincomb(U.dot(basis, pairwise=False))
+        U_proj_err = U - basis.lincomb(U.dot(basis))
     else:
-        U_proj_err = U - basis.lincomb(product.apply2(U, basis, pairwise=False))
+        U_proj_err = U - basis.lincomb(product.apply2(U, basis))
 
     new_basis.append(pod(U_proj_err, modes=count, product=product, orthonormalize=False)[0])
 

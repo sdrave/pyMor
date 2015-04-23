@@ -13,6 +13,9 @@ computing stack are provided for getting started quickly.
 **NOTE** pyMOR is still in early development.  Should you have any questions
 regarding pyMOR or wish to contribute, do not hesitate to contact us!
 
+[![Docs](https://readthedocs.org/projects/pymor/badge/?version=latest)](http://pymor.readthedocs.org/en/latest)
+[![Docs](https://readthedocs.org/projects/pymor/badge/?version=0.3.x)](http://pymor.readthedocs.org/en/0.3.x)
+[![DOI](https://zenodo.org/badge/8838/pymor/pymor.svg)](http://dx.doi.org/10.5281/zenodo.15773)
 [![Build Status](https://travis-ci.org/pymor/pymor.png?branch=master)](https://travis-ci.org/pymor/pymor)
 [![Coverage Status](https://coveralls.io/repos/pymor/pymor/badge.png)](https://coveralls.io/r/pymor/pymor)
 [![Code Health](https://landscape.io/github/pymor/pymor/master/landscape.png)](https://landscape.io/github/pymor/pymor/master)
@@ -20,7 +23,7 @@ regarding pyMOR or wish to contribute, do not hesitate to contact us!
 License
 -------
 
-Copyright (c) 2013, 2014, Rene Milk, Stephan Rave, Felix Schindler
+Copyright (c) 2013, 2014, 2015, Rene Milk, Stephan Rave, Felix Schindler
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The following files contain source code originating from other open source software projects:
 
 * docs/source/pymordocstring.py  (sphinxcontrib-napoleon)
-* src/pymor/la/genericsolvers.py (SciPy)
+* src/pymor/algorithms/genericsolvers.py (SciPy)
 
 See these files for more information.
 

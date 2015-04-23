@@ -55,7 +55,7 @@ def gram_schmidt(A, product=None, atol=1e-13, rtol=1e-13, offset=0, find_duplica
     The orthonormalized |VectorArray|.
     """
 
-    logger = getLogger('pymor.la.gram_schmidt.gram_schmidt')
+    logger = getLogger('pymor.algorithms.gram_schmidt.gram_schmidt')
 
     if copy:
         A = A.copy()
@@ -67,7 +67,7 @@ def gram_schmidt(A, product=None, atol=1e-13, rtol=1e-13, offset=0, find_duplica
         while i < len(A):
             duplicates = A.almost_equal(A, ind=i, o_ind=np.arange(max(offset, i + 1), len(A)))
             if np.any(duplicates):
-                A.remove(np.where(duplicates)[0])
+                A.remove(np.where(duplicates)[0] + max(offset, i + 1))
                 logger.info("Removing duplicate vectors")
             i += 1
 
@@ -78,7 +78,7 @@ def gram_schmidt(A, product=None, atol=1e-13, rtol=1e-13, offset=0, find_duplica
         if product is None:
             initial_norm = A.l2_norm(ind=i)[0]
         else:
-            initial_norm = np.sqrt(product.apply2(A, A, V_ind=i, U_ind=i, pairwise=True))[0]
+            initial_norm = np.sqrt(product.pairwise_apply2(A, A, V_ind=i, U_ind=i))[0]
 
         if initial_norm < atol:
             logger.info("Removing vector {} of norm {}".format(i, initial_norm))
@@ -105,16 +105,16 @@ def gram_schmidt(A, product=None, atol=1e-13, rtol=1e-13, offset=0, find_duplica
                     if j in remove:
                         continue
                     if product is None:
-                        p = A.dot(A, ind=i, o_ind=j, pairwise=True)[0]
+                        p = A.pairwise_dot(A, ind=i, o_ind=j)[0]
                     else:
-                        p = product.apply2(A, A, V_ind=i, U_ind=j, pairwise=True)[0]
+                        p = product.pairwise_apply2(A, A, V_ind=i, U_ind=j)[0]
                     A.axpy(-p, A, ind=i, x_ind=j)
 
                 # calculate new norm
                 if product is None:
                     old_norm, norm = norm, A.l2_norm(ind=i)[0]
                 else:
-                    old_norm, norm = norm, np.sqrt(product.apply2(A, A, V_ind=i, U_ind=i, pairwise=True))[0]
+                    old_norm, norm = norm, np.sqrt(product.pairwise_apply2(A, A, V_ind=i, U_ind=i))[0]
 
                 # remove vector if it got too small:
                 if norm / initial_norm < rtol:
@@ -129,9 +129,9 @@ def gram_schmidt(A, product=None, atol=1e-13, rtol=1e-13, offset=0, find_duplica
 
     if check:
         if product:
-            error_matrix = product.apply2(A, A, V_ind=range(offset, len(A)), pairwise=False)
+            error_matrix = product.apply2(A, A, V_ind=range(offset, len(A)))
         else:
-            error_matrix = A.dot(A, ind=range(offset, len(A)), pairwise=False)
+            error_matrix = A.dot(A, ind=range(offset, len(A)))
         error_matrix[:len(A) - offset, offset:len(A)] -= np.eye(len(A) - offset)
         if error_matrix.size > 0:
             err = np.max(np.abs(error_matrix))

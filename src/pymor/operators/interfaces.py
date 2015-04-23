@@ -58,7 +58,7 @@ class OperatorInterface(ImmutableInterface, Parametric):
         pass
 
     @abstractmethod
-    def apply2(self, V, U, pairwise, U_ind=None, V_ind=None, mu=None, product=None):
+    def apply2(self, V, U, U_ind=None, V_ind=None, mu=None, product=None):
         """Treat the operator as a 2-form by calculating (V, A(U)).
 
         In particular, if ( , ) is the Euclidean product and A is a linear operator
@@ -72,16 +72,6 @@ class OperatorInterface(ImmutableInterface, Parametric):
             |VectorArray| of the left arguments V.
         U
             |VectorArray| of the right right arguments U.
-        pairwise
-            If `False`, the 2-form is applied to all combinations of vectors
-            in `V` and `U`, i.e. ::
-
-                L.apply2(V, U).shape = (len(V_ind), len(U_ind)).
-
-            If `True`, the vectors in `V` and `U` are applied in pairs, i.e.
-            `V` and `U` must be of the same length and we have ::
-
-                L.apply2(V, U).shape = (len(V_ind),) = (len(U_ind),).
         V_ind
             The indices of the vectors in `V` to which the operator shall be
             applied. (See the |VectorArray| documentation for further details.)
@@ -96,7 +86,40 @@ class OperatorInterface(ImmutableInterface, Parametric):
 
         Returns
         -------
-        A |NumPy array| of all 2-form evaluations.
+        A |NumPy array| with shape `(len(V_ind), len(U_ind))` containing the 2-form
+        evaluations.
+        """
+        pass
+
+    @abstractmethod
+    def pairwise_apply2(self, V, U, U_ind=None, V_ind=None, mu=None, product=None):
+        """Treat the operator as a 2-form by calculating (V, A(U)).
+
+        Same as :meth:`OperatorInterface.apply2`, except that vectors from `V`
+        and `U` are applied in pairs.
+
+        Parameters
+        ----------
+        V
+            |VectorArray| of the left arguments V.
+        U
+            |VectorArray| of the right right arguments U.
+        V_ind
+            The indices of the vectors in `V` to which the operator shall be
+            applied. (See the |VectorArray| documentation for further details.)
+        U_ind
+            The indices of the vectors in `U` to which the operator shall be
+            applied. (See the |VectorArray| documentation for further details.)
+        mu
+            The |Parameter| for which to evaluate the operator.
+        product
+            The scalar product used in the expression `(V, A(U))` given as
+            an |Operator|.  If `None`, the euclidean product is chosen.
+
+        Returns
+        -------
+        A |NumPy array| with shape `(len(V_ind),) == (len(U_ind),)` containing
+        the 2-form evaluations.
         """
         pass
 
@@ -245,12 +268,6 @@ class OperatorInterface(ImmutableInterface, Parametric):
         """
         pass
 
-    @abstractstaticmethod
-    def lincomb(operators, coefficients, name=None):
-        """DEPRECATED! Use :func:`pymor.operators.constructions.LincombOperator` instead.
-        """
-        pass
-
     def assemble_lincomb(self, operators, coefficients, name=None):
         """Try to assemble a linear combination of the given operators.
 
@@ -276,7 +293,7 @@ class OperatorInterface(ImmutableInterface, Parametric):
         return None
 
     @abstractmethod
-    def projected(self, source_basis, range_basis, product=None, name=None):
+    def projected(self, range_basis, source_basis, product=None, name=None):
         """Project the operator to subspaces of the source and range space.
 
         Denote `self` by A. Given a scalar product ( ⋅, ⋅), and vectors b_1, ..., b_N,
@@ -311,12 +328,12 @@ class OperatorInterface(ImmutableInterface, Parametric):
 
         Parameters
         ----------
-        source_basis
-            The b_1, ..., b_N as a |VectorArray| or `None`. If `None`, no restriction of
-            the source space is performed.
         range_basis
             The c_1, ..., c_M as a |VectorArray|. If `None`, no projection in the range
             space is performed.
+        source_basis
+            The b_1, ..., b_N as a |VectorArray| or `None`. If `None`, no restriction of
+            the source space is performed.
         product
             An |Operator| representing the scalar product.  If `None`, the
             Euclidean product is chosen.

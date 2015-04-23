@@ -1,6 +1,8 @@
 # This file is part of the pyMOR project (http://www.pymor.org).
 # Copyright Holders: Rene Milk, Stephan Rave, Felix Schindler
 # License: BSD 2-Clause License (http://opensource.org/licenses/BSD-2-Clause)
+#
+# Contributors: Andreas Buhr <andreas@andreasbuhr.de>
 
 from __future__ import absolute_import, division, print_function
 
@@ -9,13 +11,47 @@ import numpy as np
 import pytest
 
 from pymor.core.exceptions import InversionError
-from pymor.la.numpyvectorarray import NumpyVectorArray
+from pymor.operators.constructions import SelectionOperator
+from pymor.parameters.base import ParameterType
+from pymor.parameters.functionals import GenericParameterFunctional
 from pymor.tools.floatcmp import float_cmp_all
+from pymor.vectorarrays.numpy import NumpyVectorArray
 from pymortests.algorithms import MonomOperator
 from pymortests.fixtures.operator import operator, operator_with_arrays, operator_with_arrays_and_products
-from pymortests.vectorarray import valid_inds, valid_inds_of_same_length, invalid_inds
 from pymortests.pickle import assert_picklable, assert_picklable_without_dumps_function
+from pymortests.vectorarray import valid_inds, valid_inds_of_same_length, invalid_inds
 
+
+def test_selection_op():
+    p1 = MonomOperator(1)
+    select_rhs_functional = GenericParameterFunctional(
+        lambda x: round(float(x["nrrhs"])), 
+        ParameterType({"nrrhs" : tuple()})
+    )
+    s1 = SelectionOperator(
+        operators = [p1], 
+        boundaries = [], 
+        parameter_functional = select_rhs_functional,
+        name = "foo"
+    )
+    x = np.linspace(-1., 1., num=3)
+    vx = NumpyVectorArray(x[:, np.newaxis])
+    assert np.allclose(p1.apply(vx,mu=0).data, s1.apply(vx,mu=0).data)
+
+    s2 = SelectionOperator(
+        operators = [p1,p1,p1,p1],
+        boundaries = [-3, 3, 7],
+        parameter_functional = select_rhs_functional,
+        name = "Bar"
+    )
+
+    assert s2._get_operator_number({"nrrhs":-4}) == 0
+    assert s2._get_operator_number({"nrrhs":-3}) == 0
+    assert s2._get_operator_number({"nrrhs":-2}) == 1
+    assert s2._get_operator_number({"nrrhs":3}) == 1
+    assert s2._get_operator_number({"nrrhs":4}) == 2
+    assert s2._get_operator_number({"nrrhs":7}) == 2
+    assert s2._get_operator_number({"nrrhs":9}) == 3
 
 def test_lincomb_op():
     p1 = MonomOperator(1)
@@ -64,9 +100,9 @@ def test_apply2(operator_with_arrays):
     op, mu, U, V = operator_with_arrays
     for U_ind in valid_inds(U):
         for V_ind in valid_inds(V):
-            M = op.apply2(V, U, pairwise=False, U_ind=U_ind, V_ind=V_ind, mu=mu)
+            M = op.apply2(V, U, U_ind=U_ind, V_ind=V_ind, mu=mu)
             assert M.shape == (V.len_ind(V_ind), U.len_ind(U_ind))
-            M2 = V.dot(op.apply(U, ind=U_ind, mu=mu), pairwise=False, ind=V_ind)
+            M2 = V.dot(op.apply(U, ind=U_ind, mu=mu), ind=V_ind)
             assert np.allclose(M, M2)
 
 
@@ -74,27 +110,27 @@ def test_apply2_with_product(operator_with_arrays_and_products):
     op, mu, U, V, sp, rp = operator_with_arrays_and_products
     for U_ind in valid_inds(U):
         for V_ind in valid_inds(V):
-            M = op.apply2(V, U, pairwise=False, U_ind=U_ind, V_ind=V_ind, mu=mu, product=rp)
+            M = op.apply2(V, U, U_ind=U_ind, V_ind=V_ind, mu=mu, product=rp)
             assert M.shape == (V.len_ind(V_ind), U.len_ind(U_ind))
-            M2 = V.dot(rp.apply(op.apply(U, ind=U_ind, mu=mu)), pairwise=False, ind=V_ind)
+            M2 = V.dot(rp.apply(op.apply(U, ind=U_ind, mu=mu)), ind=V_ind)
             assert np.allclose(M, M2)
 
 
-def test_apply2_pairwise(operator_with_arrays):
+def test_pairwise_apply2(operator_with_arrays):
     op, mu, U, V = operator_with_arrays
     for U_ind, V_ind in valid_inds_of_same_length(U, V):
-        M = op.apply2(V, U, pairwise=True, U_ind=U_ind, V_ind=V_ind, mu=mu)
+        M = op.pairwise_apply2(V, U, U_ind=U_ind, V_ind=V_ind, mu=mu)
         assert M.shape == (V.len_ind(V_ind),)
-        M2 = V.dot(op.apply(U, ind=U_ind, mu=mu), pairwise=True, ind=V_ind)
+        M2 = V.pairwise_dot(op.apply(U, ind=U_ind, mu=mu), ind=V_ind)
         assert np.allclose(M, M2)
 
 
-def test_apply2_pairwise_with_product(operator_with_arrays_and_products):
+def test_pairwise_apply2_with_product(operator_with_arrays_and_products):
     op, mu, U, V, sp, rp = operator_with_arrays_and_products
     for U_ind, V_ind in valid_inds_of_same_length(U, V):
-        M = op.apply2(V, U, pairwise=True, U_ind=U_ind, V_ind=V_ind, mu=mu, product=rp)
+        M = op.pairwise_apply2(V, U, U_ind=U_ind, V_ind=V_ind, mu=mu, product=rp)
         assert M.shape == (V.len_ind(V_ind),)
-        M2 = V.dot(rp.apply(op.apply(U, ind=U_ind, mu=mu)), pairwise=True, ind=V_ind)
+        M2 = V.pairwise_dot(rp.apply(op.apply(U, ind=U_ind, mu=mu)), ind=V_ind)
         assert np.allclose(M, M2)
 
 
@@ -118,7 +154,7 @@ def test_apply_adjoint_2(operator_with_arrays):
         ATV = op.apply_adjoint(V, mu=mu)
     except NotImplementedError:
         return
-    assert np.allclose(V.dot(op.apply(U, mu=mu), pairwise=False), ATV.dot(U, pairwise=False))
+    assert np.allclose(V.dot(op.apply(U, mu=mu)), ATV.dot(U))
 
 
 def test_apply_adjoint_2_with_products(operator_with_arrays_and_products):
@@ -127,8 +163,7 @@ def test_apply_adjoint_2_with_products(operator_with_arrays_and_products):
         ATV = op.apply_adjoint(V, mu=mu, source_product=sp, range_product=rp)
     except NotImplementedError:
         return
-    assert np.allclose(rp.apply2(V, op.apply(U, mu=mu), pairwise=False),
-                       sp.apply2(ATV, U, pairwise=False))
+    assert np.allclose(rp.apply2(V, op.apply(U, mu=mu)), sp.apply2(ATV, U))
 
 
 def test_apply_inverse(operator_with_arrays):
@@ -150,21 +185,21 @@ def test_apply_inverse(operator_with_arrays):
 
 def test_projected(operator_with_arrays):
     op, mu, U, V = operator_with_arrays
-    op_UV = op.projected(U, V)
+    op_UV = op.projected(V, U)
     np.random.seed(4711 + U.dim + len(V))
     coeffs = np.random.random(len(U))
     X = op_UV.apply(NumpyVectorArray(coeffs, copy=False), mu=mu)
-    Y = NumpyVectorArray(V.dot(op.apply(U.lincomb(coeffs), mu=mu), pairwise=False).T, copy=False)
+    Y = NumpyVectorArray(V.dot(op.apply(U.lincomb(coeffs), mu=mu)).T, copy=False)
     assert np.all(X.almost_equal(Y))
 
 
 def test_projected_2(operator_with_arrays):
     op, mu, U, V = operator_with_arrays
-    op_U = op.projected(U, None)
-    op_V = op.projected(None, V)
-    op_U_V = op_U.projected(None, V)
-    op_V_U = op_V.projected(U, None)
-    op_UV = op.projected(U, V)
+    op_U = op.projected(None, U)
+    op_V = op.projected(V, None)
+    op_U_V = op_U.projected(V, None)
+    op_V_U = op_V.projected(None, U)
+    op_UV = op.projected(V, U)
     np.random.seed(4711 + U.dim + len(V))
     W = NumpyVectorArray(np.random.random(len(U)), copy=False)
     Y0 = op_UV.apply(W, mu=mu)
@@ -176,21 +211,21 @@ def test_projected_2(operator_with_arrays):
 
 def test_projected_with_product(operator_with_arrays_and_products):
     op, mu, U, V, sp, rp = operator_with_arrays_and_products
-    op_UV = op.projected(U, V, product=rp)
+    op_UV = op.projected(V, U, product=rp)
     np.random.seed(4711 + U.dim + len(V))
     coeffs = np.random.random(len(U))
     X = op_UV.apply(NumpyVectorArray(coeffs, copy=False), mu=mu)
-    Y = NumpyVectorArray(rp.apply2(op.apply(U.lincomb(coeffs), mu=mu), V, pairwise=False), copy=False)
+    Y = NumpyVectorArray(rp.apply2(op.apply(U.lincomb(coeffs), mu=mu), V), copy=False)
     assert np.all(X.almost_equal(Y))
 
 
 def test_projected_with_product_2(operator_with_arrays_and_products):
     op, mu, U, V, sp, rp = operator_with_arrays_and_products
-    op_U = op.projected(U, None)
-    op_V = op.projected(None, V, product=rp)
-    op_U_V = op_U.projected(None, V, product=rp)
-    op_V_U = op_V.projected(U, None)
-    op_UV = op.projected(U, V, product=rp)
+    op_U = op.projected(None, U)
+    op_V = op.projected(V, None, product=rp)
+    op_U_V = op_U.projected(V, None, product=rp)
+    op_V_U = op_V.projected(None, U)
+    op_UV = op.projected(V, U, product=rp)
     np.random.seed(4711 + U.dim + len(V))
     W = NumpyVectorArray(np.random.random(len(U)), copy=False)
     Y0 = op_UV.apply(W, mu=mu)
@@ -232,10 +267,10 @@ def test_apply2_wrong_ind(operator_with_arrays):
     op, mu, U, V = operator_with_arrays
     for ind in invalid_inds(U):
         with pytest.raises(Exception):
-            op.apply2(U, V, pairwise=False, mu=mu, ind=ind)
+            op.apply2(U, V, mu=mu, ind=ind)
     for ind in invalid_inds(V):
         with pytest.raises(Exception):
-            op.apply2(U, V, pairwise=False, mu=mu, ind=ind)
+            op.apply2(U, V, mu=mu, ind=ind)
 
 
 def test_apply_adjoint_wrong_ind(operator_with_arrays):
@@ -250,3 +285,4 @@ def test_apply_inverse_wrong_ind(operator_with_arrays):
     for ind in invalid_inds(V):
         with pytest.raises(Exception):
             op.apply_inverse(V, mu=mu, ind=ind)
+

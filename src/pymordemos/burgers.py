@@ -5,6 +5,8 @@
 
 """Solves Burgers' equation in 2D. See analyticalproblems for more details on the Burgers' equation.
 
+Solves a two-dimensional Burgers-type equation. See pymor.analyticalproblems.burgers for more details.
+
 Usage:
   burgers.py [-hp] [--grid=NI] [--grid-type=TYPE] [--initial-data=TYPE] [--lxf-lambda=VALUE] [--nt=COUNT]
              [--not-periodic] [--num-flux=FLUX] [--vx=XSPEED] [--vy=YSPEED] EXP

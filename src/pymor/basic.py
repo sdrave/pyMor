@@ -10,7 +10,9 @@ to have the most important parts of pyMOR directly available.
 
 from pymor.algorithms.basisextension import trivial_basis_extension, gram_schmidt_basis_extension, pod_basis_extension
 from pymor.algorithms.ei import interpolate_operators, ei_greedy, deim
+from pymor.algorithms.gram_schmidt import gram_schmidt
 from pymor.algorithms.greedy import greedy
+from pymor.algorithms.pod import pod
 
 from pymor.analyticalproblems.advection import InstationaryAdvectionProblem
 from pymor.analyticalproblems.burgers import BurgersProblem, Burgers2DProblem
@@ -39,16 +41,10 @@ from pymor.grids.oned import OnedGrid
 from pymor.grids.rect import RectGrid
 from pymor.grids.tria import TriaGrid
 
-from pymor.la.basic import induced_norm, cat_arrays
-from pymor.la.gram_schmidt import gram_schmidt
-from pymor.la.interfaces import VectorSpace
-from pymor.la.numpyvectorarray import NumpyVectorArray, NumpyVectorSpace
-from pymor.la.pod import pod
-
 from pymor.operators.numpy import NumpyGenericOperator, NumpyMatrixOperator
 from pymor.operators.constructions import (LincombOperator, Concatenation, ComponentProjection, IdentityOperator,
                                            ConstantOperator, VectorArrayOperator, VectorOperator, VectorFunctional,
-                                           FixedParameterOperator)
+                                           FixedParameterOperator, induced_norm)
 from pymor.operators.ei import EmpiricalInterpolatedOperator
 
 from pymor.parameters.base import Parameter
@@ -61,3 +57,7 @@ from pymor.reductors.stationary import reduce_stationary_coercive
 
 from pymor.tools.floatcmp import float_cmp, float_cmp_all
 from pymor.tools.random import new_random_state
+
+from pymor.vectorarrays.constructions import cat_arrays
+from pymor.vectorarrays.interfaces import VectorSpace
+from pymor.vectorarrays.numpy import NumpyVectorArray, NumpyVectorSpace

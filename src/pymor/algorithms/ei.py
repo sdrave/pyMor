@@ -17,11 +17,11 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 
+from pymor.algorithms.gram_schmidt import gram_schmidt
 from pymor.core.logger import getLogger
-from pymor.la.gram_schmidt import gram_schmidt
-from pymor.la.interfaces import VectorArrayInterface
-from pymor.la.pod import pod
+from pymor.algorithms.pod import pod
 from pymor.operators.ei import EmpiricalInterpolatedOperator
+from pymor.vectorarrays.interfaces import VectorArrayInterface
 
 
 def ei_greedy(U, error_norm=None, target_error=None, max_interpolation_dofs=None,
@@ -130,7 +130,7 @@ def ei_greedy(U, error_norm=None, target_error=None, max_interpolation_dofs=None
         if projection == 'orthogonal':
             onb_collateral_basis.append(new_vec)
             gram_schmidt(onb_collateral_basis, offset=len(onb_collateral_basis) - 1, copy=False)
-            coeffs = ERR.dot(onb_collateral_basis, o_ind=len(onb_collateral_basis) - 1, pairwise=False)
+            coeffs = ERR.dot(onb_collateral_basis, o_ind=len(onb_collateral_basis) - 1)
             ERR.axpy(-coeffs[:, 0], onb_collateral_basis, x_ind=len(onb_collateral_basis) - 1)
 
     interpolation_matrix = collateral_basis.components(interpolation_dofs).T
@@ -154,7 +154,7 @@ def deim(U, modes=None, error_norm=None, product=None):
     interpolation DOFs for empirical interpolation of the vectors contained in `U`.
     The returned objects can also be used to instantiate an |EmpiricalInterpolatedOperator|.
 
-    The collateral basis is determined by the first :func:`~pymor.la.pod.pod` modes of `U`.
+    The collateral basis is determined by the first :func:`~pymor.algorithms.pod.pod` modes of `U`.
 
     Parameters
     ----------

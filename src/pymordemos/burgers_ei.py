@@ -7,6 +7,10 @@
 
 """MOR demo of Burgers' equation. This demo makes use of the empirical interpolation method (EI) to resolve non-linearities.
 
+Model order reduction of a two-dimensional Burgers-type equation
+(see pymor.analyticalproblems.burgers) using the reduced basis method
+with empirical operator interpolation.
+
 Usage:
   burgers_ei.py [options] EXP_MIN EXP_MAX EI_SNAPSHOTS EISIZE SNAPSHOTS RBSIZE
 
@@ -84,8 +88,8 @@ from pymor.discretizers.advection import discretize_nonlinear_instationary_advec
 from pymor.domaindiscretizers.default import discretize_domain_default
 from pymor.grids.rect import RectGrid
 from pymor.grids.tria import TriaGrid
-from pymor.la.numpyvectorarray import NumpyVectorArray
 from pymor.reductors.basic import reduce_generic_rb, reduce_to_subbasis
+from pymor.vectorarrays.numpy import NumpyVectorArray
 
 
 logger.set_log_levels({'pymor.algorithms': 'INFO',

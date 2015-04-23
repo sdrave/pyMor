@@ -9,11 +9,10 @@ from itertools import izip
 import numpy as np
 
 from pymor.core.interfaces import ImmutableInterface
-from pymor.la.basic import induced_norm
-from pymor.la.numpyvectorarray import NumpyVectorArray
-from pymor.operators.constructions import LincombOperator
+from pymor.operators.constructions import LincombOperator, induced_norm
 from pymor.reductors.basic import reduce_generic_rb
 from pymor.operators.numpy import NumpyMatrixOperator
+from pymor.vectorarrays.numpy import NumpyVectorArray
 
 
 def reduce_stationary_affine_linear(discretization, RB, error_product=None, coercivity_estimator=None,
@@ -131,9 +130,9 @@ def reduce_stationary_affine_linear(discretization, RB, error_product=None, coer
                 append_vector(-op.apply(RB, [i]), R_O, RR_O)
 
     # compute Gram matrix of the residuals
-    R_RR = RR_R.dot(R_R, pairwise=False)
-    R_RO = np.hstack([RR_R.dot(R_O, pairwise=False) for R_O in R_Os])
-    R_OO = np.vstack([np.hstack([RR_O.dot(R_O, pairwise=False) for R_O in R_Os]) for RR_O in RR_Os])
+    R_RR = RR_R.dot(R_R)
+    R_RO = np.hstack([RR_R.dot(R_O) for R_O in R_Os])
+    R_OO = np.vstack([np.hstack([RR_O.dot(R_O) for R_O in R_Os]) for RR_O in RR_Os])
 
     estimator_matrix = np.empty((len(R_RR) + len(R_OO),) * 2)
     estimator_matrix[:len(R_RR), :len(R_RR)] = R_RR

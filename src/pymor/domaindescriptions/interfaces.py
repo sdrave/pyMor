@@ -1,6 +1,8 @@
 # This file is part of the pyMOR project (http://www.pymor.org).
 # Copyright Holders: Rene Milk, Stephan Rave, Felix Schindler
 # License: BSD 2-Clause License (http://opensource.org/licenses/BSD-2-Clause)
+#
+# Contributors: Michael Schaefer <michael.schaefer@uni-muenster.de>
 
 from __future__ import absolute_import, division, print_function
 
@@ -28,13 +30,5 @@ class DomainDescriptionInterface(ImmutableInterface):
         return BoundaryType('neumann') in self.boundary_types
 
     @property
-    def has_only_dirichlet(self):
-        return self.boundary_types == {BoundaryType('dirichlet')}
-
-    @property
-    def has_only_neumann(self):
-        return self.boundary_types == {BoundaryType('neumann')}
-
-    @property
-    def has_only_dirichletneumann(self):
-        return self.boundary_types <= {BoundaryType('dirichlet'), BoundaryType('neumann')}
+    def has_robin(self):
+        return BoundaryType('robin') in self.boundary_types

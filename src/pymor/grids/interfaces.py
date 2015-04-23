@@ -3,6 +3,7 @@
 # License: BSD 2-Clause License (http://opensource.org/licenses/BSD-2-Clause)
 #
 # Contributors: Michael Laier <m_laie01@uni-muenster.de>
+#               Michael Schaefer <michael.schaefer@uni-muenster.de>
 
 from __future__ import absolute_import, division, print_function
 
@@ -355,22 +356,17 @@ class BoundaryInfoInterface(CacheableInterface):
         return BoundaryType('neumann') in self.boundary_types
 
     @property
-    def has_only_dirichlet(self):
-        return self.boundary_types == {BoundaryType('dirichlet')}
-
-    @property
-    def has_only_neumann(self):
-        return self.boundary_types == {BoundaryType('neumann')}
-
-    @property
-    def has_only_dirichletneumann(self):
-        return self.boundary_types <= {BoundaryType('dirichlet'), BoundaryType('neumann')}
+    def has_robin(self):
+        return BoundaryType('robin') in self.boundary_types
 
     def dirichlet_mask(self, codim):
         return self.mask(BoundaryType('dirichlet'), codim)
 
     def neumann_mask(self, codim):
         return self.mask(BoundaryType('neumann'), codim)
+
+    def robin_mask(self, codim):
+        return self.mask(BoundaryType('robin'), codim)
 
     @cached
     def _dirichlet_boundaries(self, codim):
@@ -385,3 +381,10 @@ class BoundaryInfoInterface(CacheableInterface):
 
     def neumann_boundaries(self, codim):
         return self._neumann_boundaries(codim)
+
+    @cached
+    def _robin_boundaries(self, codim):
+        return np.where(self.robin_mask(codim))[0].astype('int32')
+
+    def robin_boundaries(self, codim):
+        return self._robin_boundaries(codim)

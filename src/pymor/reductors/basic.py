@@ -7,7 +7,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 
 from pymor.core.interfaces import BasicInterface
-from pymor.la.numpyvectorarray import NumpyVectorArray
+from pymor.vectorarrays.numpy import NumpyVectorArray
 
 
 class GenericRBReconstructor(BasicInterface):
@@ -70,16 +70,16 @@ def reduce_generic_rb(discretization, RB, operator_product=None, vector_product=
     if RB is None:
         RB = discretization.solution_space.empty()
 
-    projected_operators = {k: op.projected(source_basis=RB, range_basis=RB, product=operator_product) if op else None
+    projected_operators = {k: op.projected(range_basis=RB, source_basis=RB, product=operator_product) if op else None
                            for k, op in discretization.operators.iteritems()}
-    projected_functionals = {k: f.projected(source_basis=RB, range_basis=None, product=operator_product) if f else None
+    projected_functionals = {k: f.projected(range_basis=None, source_basis=RB, product=operator_product) if f else None
                              for k, f in discretization.functionals.iteritems()}
-    projected_vector_operators = {k: (op.projected(source_basis=None, range_basis=RB, product=vector_product) if op
+    projected_vector_operators = {k: (op.projected(range_basis=RB, source_basis=None, product=vector_product) if op
                                       else None)
                                   for k, op in discretization.vector_operators.iteritems()}
 
     if discretization.products is not None:
-        projected_products = {k: p.projected(source_basis=RB, range_basis=RB)
+        projected_products = {k: p.projected(range_basis=RB, source_basis=RB)
                               for k, p in discretization.products.iteritems()}
     else:
         projected_products = None
@@ -142,15 +142,15 @@ def reduce_to_subbasis(discretization, dim, reconstructor=None):
         Reconstructor for `rd`.
     """
 
-    projected_operators = {k: op.projected_to_subbasis(dim_source=dim, dim_range=dim) if op is not None else None
+    projected_operators = {k: op.projected_to_subbasis(dim_range=dim, dim_source=dim) if op is not None else None
                            for k, op in discretization.operators.iteritems()}
-    projected_functionals = {k: f.projected_to_subbasis(dim_source=dim, dim_range=None) if f is not None else None
+    projected_functionals = {k: f.projected_to_subbasis(dim_range=None, dim_source=dim) if f is not None else None
                              for k, f in discretization.functionals.iteritems()}
-    projected_vector_operators = {k: op.projected_to_subbasis(dim_source=None, dim_range=dim) if op else None
+    projected_vector_operators = {k: op.projected_to_subbasis(dim_range=dim, dim_source=None) if op else None
                                   for k, op in discretization.vector_operators.iteritems()}
 
     if discretization.products is not None:
-        projected_products = {k: op.projected_to_subbasis(dim_source=dim, dim_range=dim)
+        projected_products = {k: op.projected_to_subbasis(dim_range=dim, dim_source=dim)
                               for k, op in discretization.products.iteritems()}
     else:
         projected_products = None
