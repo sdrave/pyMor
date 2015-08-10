@@ -11,6 +11,9 @@ import numpy as np
 from pymor.grids.interfaces import AffineGridInterface
 from pymor.grids.referenceelements import triangle
 
+from pymor.domaindescriptions.boundarytypes import BoundaryType
+from pymor.grids.interfaces import BoundaryInfoInterface
+
 
 class GmshParseError(Exception):
     pass
@@ -18,10 +21,10 @@ class GmshParseError(Exception):
 
 def parse_gmsh_file(f):
 
-    allowed_sections = ['Nodes', 'Elements', 'PhysicalName', 'Periodic', 'NodeData',
+    allowed_sections = ['Nodes', 'Elements', 'PhysicalNames', 'Periodic', 'NodeData',
                         'ElementData', 'ElementNodeData']
 
-    supported_sections = ['Nodes', 'Elements']
+    supported_sections = ['Nodes', 'Elements', 'PhysicalNames']
 
     try:
 
@@ -66,12 +69,12 @@ def parse_gmsh_file(f):
             continue
         if not in_section:
             if not l.startswith('$'):
-                raise GmshParseError('expected section naem, got {}'.format(l))
+                raise GmshParseError('expected section name, got {}'.format(l))
             section = l[1:]
             if section not in allowed_sections:
                 raise GmshParseError('unknown section type: {}'.format(section))
             if section not in supported_sections:
-                raise GmshParseError('unsopported section type: {}'.format(section))
+                raise GmshParseError('unsupported section type: {}'.format(section))
             if section in sections:
                 raise GmshParseError('only one {} section allowed'.format(section))
             in_section = True
@@ -140,7 +143,26 @@ def parse_gmsh_file(f):
 
         return elements_by_type
 
-    parser_map = {'Nodes': parse_nodes, 'Elements': parse_elements}
+    def parse_names(physical_names):
+        try:
+            num_elements = int(physical_names[0])
+        except ValueError:
+            raise GmshParseError('first line of physical names sections is not a number: {}'.format(physical_names[0]))
+        if len(physical_names) != num_elements + 1:
+            raise GmshParseError('number-of-names field does not match number of lines in physical names section')
+
+        physical_names = [pn.split(' ') for pn in physical_names[1:]]
+        if not all(len(pn) == 3 for pn in physical_names):
+            raise GmshParseError('malformed physical names section')
+
+        try:
+            physical_names = [(int(b), int(a), str(c).replace('"', '')) for a, b, c in physical_names]
+        except ValueError:
+            raise GmshParseError('malformed physical names section')
+
+        return physical_names
+
+    parser_map = {'Nodes': parse_nodes, 'Elements': parse_elements, 'PhysicalNames': parse_names}
 
     for k, v in sections.iteritems():
         sections[k] = parser_map[k](v)
@@ -154,39 +176,43 @@ class GmshGrid(AffineGridInterface):
     dim_outer = 2
     reference_element = triangle
 
-    def __init__(self, gmsh_file):
+    def __init__(self, gmsh_file_path):
         self.logger.info('Parsing gmsh file ...')
-        sections = parse_gmsh_file(gmsh_file)
+        self.sections = parse_gmsh_file(open(gmsh_file_path))
 
         self.logger.info('Checking is grid is a 2d triangular grid ...')
-        assert {'Nodes', 'Elements'} <= set(sections.keys())
-        assert set(sections['Elements'].keys()) <= {'line', 'triangle'}
-        assert 'triangle' in sections['Elements']
-        assert all(n[1][2] == 0 for n in sections['Nodes'])
+        assert {'Nodes', 'Elements', 'PhysicalNames'} <= set(self.sections.keys())
+        assert set(self.sections['Elements'].keys()) <= {'line', 'triangle'}
+        assert 'triangle' in self.sections['Elements']
+        assert all(n[1][2] == 0 for n in self.sections['Nodes'])
 
         self.logger.info('Creating entity maps ...')
         node_ids = {}
-        for i, n in enumerate(sections['Nodes']):
+        for i, n in enumerate(self.sections['Nodes']):
             node_ids[n[0]] = i
+        # node_ids[sections['Nodes'][:,0]] = np.arange(len(sections['Nodes']))
         line_ids = {}
-        if 'line' in sections['Elements']:
-            for i, l in enumerate(sections['Elements']['line']):
+        if 'line' in self.sections['Elements']:
+            for i, l in enumerate(self.sections['Elements']['line']):
                     line_ids[l[0]] = i
+            # line_ids[sections['Elements'][:,0]] = np.arange(len(sections['Elements']))
         triangle_ids = {}
-        for i, t in enumerate(sections['Elements']['triangle']):
+        for i, t in enumerate(self.sections['Elements']['triangle']):
             triangle_ids[t[0]] = i
+        # triangle_ids[['Elements']['triangle'][:,0]] = np.arange(len(sections['Elements']['triangle']))
 
         self.logger.info('Building grid topology ...')
 
         # the lines dict will hold the indices of lines defined by pairs of points
         lines = {}
-        if 'line' in sections['Elements']:
-            for i, l in enumerate(sections['Elements']['line']):
+        if 'line' in self.sections['Elements']:
+            for i, l in enumerate(self.sections['Elements']['line']):
                 lines[frozenset(l[2])] = i
+            # lines[frozenset(sections['Elements']['line'][:, 2])] = np.arange(len(sections['Elements']['line']))
 
-        codim1_subentities = np.empty((len(sections['Elements']['triangle']), 3), dtype=np.int32)
+        codim1_subentities = np.empty((len(self.sections['Elements']['triangle']), 3), dtype=np.int32)
         codim2_subentities = np.empty_like(codim1_subentities)
-        for i, t in enumerate(sections['Elements']['triangle']):
+        for i, t in enumerate(self.sections['Elements']['triangle']):
             nodes = t[2]
             codim2_subentities[i] = [node_ids[nodes[0]], node_ids[nodes[1]], node_ids[nodes[2]]]
 
@@ -195,9 +221,14 @@ class GmshGrid(AffineGridInterface):
                 if e not in lines:
                     lines[e] = len(lines)
             codim1_subentities[i] = [lines[edges[0]], lines[edges[1]], lines[edges[2]]]
+        # nodes = sections['Elements']['triangle'][:, 2]
+        # codim2_subentities = [node_ids[nodes[:, 0]], node_ids[nodes[:, 1]], node_ids[nodes[:, 2]]]
+        # edges = (frozenset(nodes[:, 1:3]), frozenset(nodes[:, 2]), frozenset(nodes[:, 0:2]))
+        # lines[[e not in lines] for e in edges] = len(lines)
+        # codim1_subentities = [lines[:, edges[:, 0]], lines[:, edges[:, 1]], lines[:, edges[:, 2]]]
 
         self.logger.info('Calculating embeddings ...')
-        codim2_centers = np.array([n[1][0:2] for n in sections['Nodes']])
+        codim2_centers = np.array([n[1][0:2] for n in self.sections['Nodes']])
         SEC = codim2_centers[codim2_subentities]
         SHIFTS = SEC[:, 0, :]
         TRANS = SEC[:, 1:, :] - SHIFTS[:, np.newaxis, :]
@@ -234,4 +265,38 @@ class GmshGrid(AffineGridInterface):
     @staticmethod
     def test_instances():
         import os.path
-        return GmshGrid(open(os.path.join(os.path.dirname(__file__), '../../../../testdata/gmsh_1.msh'))),
+        return GmshGrid(os.path.join(os.path.dirname(__file__), '../../../../testdata/gmsh_1.msh')),
+
+
+class GmshBoundaryInfo(BoundaryInfoInterface):
+
+    def __init__(self, grid):
+        self.grid = grid
+        sections = grid.sections
+        self.boundary_types = [pn[2] for pn in sections['PhysicalNames'] if pn[1] == 1]
+
+        name_ids = {}
+        for i, pn in enumerate(sections['PhysicalNames']):
+            name_ids[pn[0]] = i
+        node_ids = {}
+        for i, n in enumerate(sections['Nodes']):
+            node_ids[n[0]] = i
+        line_ids = {}
+        if 'line' in sections['Elements']:
+            for i, l in enumerate(sections['Elements']['line']):
+                    line_ids[l[0]] = i
+
+        masks = {}
+        for bt in self.boundary_types:
+            masks[bt] = [[False]*grid.size(1), [False]*grid.size(0)]
+            for l in sections['Elements']['line']:
+                masks[bt][0][line_ids[l[0]]] = (bt == sections['PhysicalNames'][name_ids[l[1][0]]][2])
+                for n in l[2]:
+                    masks[bt][1][node_ids[n]] = (bt == sections['PhysicalNames'][name_ids[l[1][0]]][2])
+
+        self._masks = masks
+
+    def mask(self, boundary_type, codim):
+        assert 1 <= codim <= self.grid.dim
+        assert boundary_type in self.boundary_types
+        return self._masks[boundary_type][codim - 1]
