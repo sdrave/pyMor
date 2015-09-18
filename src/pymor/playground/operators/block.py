@@ -9,10 +9,11 @@ import numpy as np
 from scipy.sparse import coo_matrix, bmat
 
 from pymor.operators.interfaces import OperatorInterface
-from pymor.la.interfaces import VectorSpace
-from pymor.la.numpyvectorarray import NumpyVectorArray
-from pymor.playground.la.blockvectorarray import BlockVectorArray
-from pymor.operators.basic import NumpyMatrixOperator, OperatorBase
+from pymor.vectorarrays.interfaces import VectorSpace
+from pymor.vectorarrays.numpy import NumpyVectorArray
+from pymor.vectorarrays.block import BlockVectorArray
+from pymor.operators.basic import OperatorBase
+from pymor.operators.numpy import NumpyMatrixOperator
 
 
 class BlockOperator(OperatorBase):
