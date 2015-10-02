@@ -187,45 +187,26 @@ class GmshGrid(AffineGridInterface):
         assert all(n[1][2] == 0 for n in self.sections['Nodes'])
 
         self.logger.info('Creating entity maps ...')
-        node_ids = {}
-        for i, n in enumerate(self.sections['Nodes']):
-            node_ids[n[0]] = i
-        # node_ids[sections['Nodes'][:,0]] = np.arange(len(sections['Nodes']))
-        line_ids = {}
+        node_ids = dict(zip([n[0] for n in self.sections['Nodes']], np.arange(len(self.sections['Nodes']), dtype=np.int32)))
         if 'line' in self.sections['Elements']:
-            for i, l in enumerate(self.sections['Elements']['line']):
-                    line_ids[l[0]] = i
-            # line_ids[sections['Elements'][:,0]] = np.arange(len(sections['Elements']))
-        triangle_ids = {}
-        for i, t in enumerate(self.sections['Elements']['triangle']):
-            triangle_ids[t[0]] = i
-        # triangle_ids[['Elements']['triangle'][:,0]] = np.arange(len(sections['Elements']['triangle']))
+            line_ids = dict(zip([l[0] for l in self.sections['Elements']['line']], np.arange(len(self.sections['Elements']['line']), dtype=np.int32)))
+        triangle_ids = dict(zip([t[0] for t in self.sections['Elements']['triangle']], np.arange(len(self.sections['Elements']['triangle']), dtype=np.int32)))
 
         self.logger.info('Building grid topology ...')
 
         # the lines dict will hold the indices of lines defined by pairs of points
-        lines = {}
         if 'line' in self.sections['Elements']:
-            for i, l in enumerate(self.sections['Elements']['line']):
-                lines[frozenset(l[2])] = i
-            # lines[frozenset(sections['Elements']['line'][:, 2])] = np.arange(len(sections['Elements']['line']))
+            lines = dict(zip([frozenset(l[2]) for l in self.sections['Elements']['line']], np.arange(len(self.sections['Elements']['line']), dtype=np.int32)))
 
-        codim1_subentities = np.empty((len(self.sections['Elements']['triangle']), 3), dtype=np.int32)
-        codim2_subentities = np.empty_like(codim1_subentities)
-        for i, t in enumerate(self.sections['Elements']['triangle']):
-            nodes = t[2]
-            codim2_subentities[i] = [node_ids[nodes[0]], node_ids[nodes[1]], node_ids[nodes[2]]]
+        nodes_list = [t[2] for t in self.sections['Elements']['triangle']]
+        codim2_subentities = np.array([[node_ids[nodes[0]], node_ids[nodes[1]], node_ids[nodes[2]]] for nodes in nodes_list])
+        edges_list = [(frozenset(nodes[1:3]), frozenset((nodes[2], nodes[0])), frozenset(nodes[0:2])) for nodes in nodes_list]
+        for edges in edges_list:
+            lines.update(dict(zip([e for e in edges if e not in lines], np.arange(len(lines), len(lines)+len([e for e in edges if e not in lines]), dtype=np.int32))))
+        codim1_subentities = np.array([[lines[edges[0]], lines[edges[1]], lines[edges[2]]] for edges in edges_list])
 
-            edges = (frozenset(t[2][1:3]), frozenset((t[2][2], t[2][0])), frozenset((t[2][0:2])))
-            for e in edges:
-                if e not in lines:
-                    lines[e] = len(lines)
-            codim1_subentities[i] = [lines[edges[0]], lines[edges[1]], lines[edges[2]]]
-        # nodes = sections['Elements']['triangle'][:, 2]
-        # codim2_subentities = [node_ids[nodes[:, 0]], node_ids[nodes[:, 1]], node_ids[nodes[:, 2]]]
-        # edges = (frozenset(nodes[:, 1:3]), frozenset(nodes[:, 2]), frozenset(nodes[:, 0:2]))
-        # lines[[e not in lines] for e in edges] = len(lines)
-        # codim1_subentities = [lines[:, edges[:, 0]], lines[:, edges[:, 1]], lines[:, edges[:, 2]]]
+        del nodes_list
+        del edges_list
 
         self.logger.info('Calculating embeddings ...')
         codim2_centers = np.array([n[1][0:2] for n in self.sections['Nodes']])
@@ -240,7 +221,7 @@ class GmshGrid(AffineGridInterface):
         self.__sizes = (len(codim1_subentities), len(lines), len(codim2_centers))
 
     def __str__(self):
-        return 'GmshGrid with {} vertices, {} lines, {} triangles'.format(*self.__sizes)
+        return 'GmshGrid with {} triangles, {} lines, {} vertices'.format(*self.__sizes)
 
     def size(self, codim=0):
         assert 0 <= codim <= 2, 'Invalid codimension'
@@ -273,28 +254,36 @@ class GmshBoundaryInfo(BoundaryInfoInterface):
     def __init__(self, grid):
         self.grid = grid
         sections = grid.sections
-        self.boundary_types = [pn[2] for pn in sections['PhysicalNames'] if pn[1] == 1]
+        self.boundary_types = [BoundaryType(pn[2]) for pn in sections['PhysicalNames'] if pn[1] == 1]
 
-        name_ids = {}
-        for i, pn in enumerate(sections['PhysicalNames']):
-            name_ids[pn[0]] = i
-        node_ids = {}
-        for i, n in enumerate(sections['Nodes']):
-            node_ids[n[0]] = i
-        line_ids = {}
+        name_ids = dict(zip([pn[0] for pn in sections['PhysicalNames']], np.arange(len(sections['PhysicalNames']),
+                                                                                   dtype=np.int32)))
+        node_ids = dict(zip([n[0] for n in sections['Nodes']], np.arange(len(sections['Nodes']), dtype=np.int32)))
         if 'line' in sections['Elements']:
-            for i, l in enumerate(sections['Elements']['line']):
-                    line_ids[l[0]] = i
+            line_ids = dict(zip([l[0] for l in sections['Elements']['line']],
+                                np.arange(len(sections['Elements']['line']), dtype=np.int32)))
 
-        masks = {}
+        #masks = {}
+        masks2 = {}
         for bt in self.boundary_types:
-            masks[bt] = [[False]*grid.size(1), [False]*grid.size(0)]
+            #masks[bt] = [np.array([False]*grid.size(1)), np.array([False]*grid.size(2))]
+            #masks[bt][0][[line_ids[l[0]] for l in sections['Elements']['line']]] = \
+                #[(bt.type == sections['PhysicalNames'][name_ids[l[1][0]]][2]) for l in sections['Elements']['line']]
+            #masks[bt][1][np.ravel([[node_ids[n] for n in l[2]] for l in sections['Elements']['line']])] = \
+                #np.ravel([(bt.type == sections['PhysicalNames'][name_ids[l[1][0]]][2]) for n in l[2]] for l in
+                          #sections['Elements']['line'])
+            masks2[bt] = [np.array([False]*grid.size(1)), np.array([False]*grid.size(2))]
             for l in sections['Elements']['line']:
-                masks[bt][0][line_ids[l[0]]] = (bt == sections['PhysicalNames'][name_ids[l[1][0]]][2])
+                masks2[bt][0][line_ids[l[0]]] = (bt.type == sections['PhysicalNames'][name_ids[l[1][0]]][2])
                 for n in l[2]:
-                    masks[bt][1][node_ids[n]] = (bt == sections['PhysicalNames'][name_ids[l[1][0]]][2])
+                    if not masks2[bt][1][node_ids[n]]:
+                        masks2[bt][1][node_ids[n]] = (bt.type == sections['PhysicalNames'][name_ids[l[1][0]]][2])
+        #print(np.all(masks[BoundaryType('dirichlet')][0] == masks2[BoundaryType('dirichlet')][0]))
+        #print(np.all(masks[BoundaryType('dirichlet')][1] == masks2[BoundaryType('dirichlet')][1]))
+        #print(np.all(masks[BoundaryType('neumann')][0] == masks2[BoundaryType('neumann')][0]))
+        #print(np.all(masks[BoundaryType('neumann')][1] == masks2[BoundaryType('neumann')][1]))
 
-        self._masks = masks
+        self._masks = masks2
 
     def mask(self, boundary_type, codim):
         assert 1 <= codim <= self.grid.dim
