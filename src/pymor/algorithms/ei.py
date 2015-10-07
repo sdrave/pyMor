@@ -77,7 +77,7 @@ def ei_greedy(U, error_norm=None, target_error=None, max_interpolation_dofs=None
     if pool is not None:
         assert isinstance(U, (VectorArrayInterface, RemoteObjectInterface))
         if isinstance(U, VectorArrayInterface):
-            with pool.distribute_array(U) as U_remote:
+            with pool.scatter_array(U) as U_remote:
                 return _parallel_ei_greedy(U_remote, error_norm=error_norm, target_error=target_error,
                                            max_interpolation_dofs=max_interpolation_dofs, projection=projection,
                                            product=product, pool=pool)
@@ -174,7 +174,7 @@ def _parallel_ei_greedy(U, pool, error_norm=None, target_error=None, max_interpo
     max_errs = []
     triangularity_errs = []
 
-    with pool.distribute({}) as distributed_data:
+    with pool.push({}) as distributed_data:
         errs = pool.apply(_parallel_ei_greedy_initialize,
                           projection=projection, U=U, error_norm=error_norm, data=distributed_data)
         max_err_ind = np.argmax(errs)
@@ -415,7 +415,7 @@ def interpolate_operators(discretization, operator_names, parameter_sample, erro
 
     if pool:
         logger.info('Using pool of {} workers for parallel evaluation'.format(len(pool)))
-        with pool.distribute(discretization.solution_space.empty()) as remote_evaluations:
+        with pool.push(discretization.solution_space.empty()) as remote_evaluations:
 
             pool.map(_interpolate_operators_build_evaluations, sample,
                      d=discretization, operators=operators, evaluations=remote_evaluations)
