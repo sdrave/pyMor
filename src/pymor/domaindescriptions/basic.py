@@ -5,9 +5,11 @@
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
+import collections
 
 from pymor.domaindescriptions.boundarytypes import BoundaryType
 from pymor.domaindescriptions.interfaces import DomainDescriptionInterface
+from pymor.functions.interfaces import FunctionInterface
 
 
 class RectDomain(DomainDescriptionInterface):
@@ -264,48 +266,17 @@ class CircleDomain(DomainDescriptionInterface):
 
 class PolygonalDomain(DomainDescriptionInterface):
 
-    def __init__(self, points, boundary_types, geo_file_path):
-        self.geo_file_path = geo_file_path
-        f = open(geo_file_path, 'w')
-
-        point_count = 1
-        for ps in points:
-            for p in ps:
-                assert len(p) == 2
-                p.extend([0, 0])
-                f.write('Point('+str(point_count)+') = '+str(p).replace('[', '{').replace(']', '}')+';\n')
-                point_count += 1
-        del point_count
-
-        line_count = 1
-        elem_count = 1
-        line_loop_ids = []
-        line_map = {}
-        for i, ps in enumerate(points):
-            lines = [[line_count+j, line_count+j+1]for j in xrange(len(ps))]
-            lines[-1][-1] = lines[0][0]
-            line_loop = []
-            for l in lines:
-                f.write('Line('+str(elem_count)+')'+' = '+str(l).replace('[', '{').replace(']', '}')+';\n')
-                line_map[line_count] = elem_count
-                line_loop.append(elem_count)
-                line_count += 1
-                elem_count += 1
-            f.write('Line Loop('+str(elem_count)+')'+' = '+str(line_loop).replace('[', '{').replace(']', '}')+';\n')
-            line_loop_ids.append(elem_count)
-            elem_count += 1
-        line_loop_ids.reverse()
-        f.write('Plane Surface('+str(elem_count)+')'+' = '+str(line_loop_ids).replace('[', '{').replace(']', '}')+';\n')
-        f.write('Physical Surface("boundary") = {'+str(elem_count)+'};\n')
-        del line_count
-        del elem_count
-        del line_loop_ids
-
-        for boundary_type, bs in boundary_types.iteritems():
-            f.write('Physical Line'+'("'+str(boundary_type)+'")'+' = '+str([line_map[l_id] for l_id in bs]).replace('[', '{').replace(']', '}')+';\n')
-        del line_map
-
-        f.close()
+    def __init__(self, points, boundary_types):
+        self.points = points
+        assert isinstance(boundary_types, dict) or isinstance(boundary_types, FunctionInterface)
+        if isinstance(boundary_types, FunctionInterface):
+            points_deque = [collections.deque(ps) for ps in points]
+            for ps_d in points_deque:
+                ps_d.rotate(-1)
+            centers = [[(p0[0]+p1[0])/2, (p0[1]+p1[1])/2] for ps, ps_d in zip(points, points_deque) for p0, p1 in zip(ps, ps_d)]
+            self.boundary_types = dict(zip([boundary_types(centers)], [range(1, len(centers)+1)]))
+        else:
+            self.boundary_types = boundary_types
 
     def __repr__(self):
         return 'PolygonalDomain'
@@ -323,10 +294,7 @@ class PieDomain(PolygonalDomain):
         boundary_types = {BoundaryType('dirichlet'): [1, len(points[0])]}
         boundary_types[BoundaryType('neumann')] = range(2, len(points[0]))
 
-        import os.path
-        geo_file_path = os.path.join(os.path.dirname(__file__), '../../../testdata/PieDomain'+str(angle).replace('.', '_')+'.geo')
-
-        super(PieDomain, self).__init__(points, boundary_types, geo_file_path)
+        super(PieDomain, self).__init__(points, boundary_types)
 
     def __repr__(self):
         return 'PieDomain({})'.format(self.angle)
