@@ -14,7 +14,7 @@ def discretize_Gmsh(domain_description=None, geo_file=None, geo_file_path=None, 
     if domain_description is not None:
         assert isinstance(domain_description, PolygonalDomain)
         if geo_file_path is None:
-            f = tempfile.NamedTemporaryFile(suffix='.geo')
+            f = tempfile.NamedTemporaryFile(delete=False, suffix='.geo')
             geo_file_path = f.name
         else:
             f = open(geo_file_path, 'w')
@@ -48,7 +48,8 @@ def discretize_Gmsh(domain_description=None, geo_file=None, geo_file_path=None, 
     else:
         geo_file_path = geo_file
     if msh_file_path is None:
-        msh_file_path = tempfile.NamedTemporaryFile(suffix='.msh').name
+        msh_file = tempfile.NamedTemporaryFile(delete=False, suffix='.msh')
+        msh_file_path = msh_file.name
 
     from subprocess import PIPE, Popen
     gmsh = Popen(['gmsh', geo_file_path, '-2', '-algo', mesh_algorithm, '-clscale', str(clscale), '-clmin', str(clmin),
@@ -56,7 +57,9 @@ def discretize_Gmsh(domain_description=None, geo_file=None, geo_file_path=None, 
     gmsh.wait()
     print(gmsh.stdout.read())
 
-    grid = GmshGrid(msh_file_path)
+    grid = GmshGrid(msh_file)
     bi = GmshBoundaryInfo(grid)
+
+    msh_file.close()
 
     return grid, bi
