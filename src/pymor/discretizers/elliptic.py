@@ -14,6 +14,7 @@ from pymor.grids.boundaryinfos import EmptyBoundaryInfo
 from pymor.grids.oned import OnedGrid
 from pymor.grids.rect import RectGrid
 from pymor.grids.tria import TriaGrid
+from pymor.playground.grids.gmsh import GmshGrid
 from pymor.gui.qt import PatchVisualizer, Matplotlib1DVisualizer
 from pymor.operators import cg, fv
 from pymor.operators.constructions import LincombOperator
@@ -64,7 +65,7 @@ def discretize_elliptic_cg(analytical_problem, diameter=None, domain_discretizer
         else:
             grid, boundary_info = domain_discretizer(analytical_problem.domain, diameter=diameter)
 
-    assert isinstance(grid, (OnedGrid, TriaGrid, RectGrid))
+    assert isinstance(grid, (OnedGrid, TriaGrid, RectGrid, GmshGrid))
 
     if isinstance(grid, RectGrid):
         Operator = cg.DiffusionOperatorQ1
@@ -93,8 +94,10 @@ def discretize_elliptic_cg(analytical_problem, diameter=None, domain_discretizer
 
     if isinstance(grid, (TriaGrid, RectGrid)):
         visualizer = PatchVisualizer(grid=grid, bounding_box=grid.domain, codim=2)
-    else:
+    elif isinstance(grid, (OnedGrid)):
         visualizer = Matplotlib1DVisualizer(grid=grid, codim=1)
+    else:
+        visualizer = None
 
     empty_bi = EmptyBoundaryInfo(grid)
     l2_product = cg.L2ProductQ1(grid, empty_bi) if isinstance(grid, RectGrid) else cg.L2ProductP1(grid, empty_bi)
