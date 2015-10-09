@@ -176,9 +176,9 @@ class GmshGrid(AffineGridInterface):
     dim_outer = 2
     reference_element = triangle
 
-    def __init__(self, gmsh_file_path):
+    def __init__(self, gmsh_file):
         self.logger.info('Parsing gmsh file ...')
-        self.sections = parse_gmsh_file(open(gmsh_file_path))
+        self.sections = parse_gmsh_file(gmsh_file)
 
         self.logger.info('Checking is grid is a 2d triangular grid ...')
         assert {'Nodes', 'Elements', 'PhysicalNames'} <= set(self.sections.keys())
@@ -246,7 +246,7 @@ class GmshGrid(AffineGridInterface):
     @staticmethod
     def test_instances():
         import os.path
-        return GmshGrid(os.path.join(os.path.dirname(__file__), '../../../../testdata/gmsh_1.msh')),
+        return GmshGrid(open(os.path.join(os.path.dirname(__file__), '../../../../testdata/gmsh_1.msh'))),
 
 
 class GmshBoundaryInfo(BoundaryInfoInterface):
