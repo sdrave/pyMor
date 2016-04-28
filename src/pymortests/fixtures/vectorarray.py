@@ -29,8 +29,16 @@ from pymortests.fixtures.numpy import (random_integers,
                                        numpy_list_vector_array_pair_with_different_dim_generators,
                                        numpy_disk_vector_array_pair_with_different_dim_generators)
 
-import os; TRAVIS = os.getenv('TRAVIS') == 'true'
+try:
+    from boltzmann.fixtures import (dune_stuff_vector_array_generators,
+                                    dune_stuff_vector_array_pair_with_same_dim_generators,
+                                    dune_stuff_vector_array_pair_with_different_dim_generators)
+except ImportError:
+    dune_stuff_vector_array_generators \
+        = dune_stuff_vector_array_pair_with_same_dim_generators \
+        = dune_stuff_vector_array_pair_with_different_dim_generators = []
 
+import os; TRAVIS = os.getenv('TRAVIS') == 'true'
 
 
 def block_vector_array_factory(length, dims, seed):
@@ -162,13 +170,14 @@ fenics_vector_array_pair_with_different_dim_generators = \
 
 @pytest.fixture(params=numpy_vector_array_generators + numpy_list_vector_array_generators +
                        numpy_disk_vector_array_generators + block_vector_array_generators +
-                       fenics_vector_array_generators)
+                       fenics_vector_array_generators + dune_stuff_vector_array_generators)
 def vector_array_without_reserve(request):
     return request.param()
 
 
 @pytest.fixture(params=numpy_vector_array_generators + numpy_list_vector_array_generators +
-                       numpy_disk_vector_array_generators + block_vector_array_generators)
+                       numpy_disk_vector_array_generators + block_vector_array_generators +
+                       dune_stuff_vector_array_generators)
 def picklable_vector_array_without_reserve(request):
     return request.param()
 
@@ -187,7 +196,8 @@ def picklable_vector_array(picklable_vector_array_without_reserve, request):
                         numpy_list_vector_array_pair_with_same_dim_generators +
                         numpy_disk_vector_array_pair_with_same_dim_generators +
                         block_vector_array_pair_with_same_dim_generators +
-                        fenics_vector_array_pair_with_same_dim_generators))
+                        fenics_vector_array_pair_with_same_dim_generators +
+                        dune_stuff_vector_array_pair_with_same_dim_generators))
 def compatible_vector_array_pair_without_reserve(request):
     return request.param()
 
@@ -202,6 +212,7 @@ def compatible_vector_array_pair(compatible_vector_array_pair_without_reserve, r
                         numpy_list_vector_array_pair_with_different_dim_generators +
                         numpy_disk_vector_array_pair_with_different_dim_generators +
                         block_vector_array_pair_with_different_dim_generators +
-                        fenics_vector_array_pair_with_different_dim_generators))
+                        fenics_vector_array_pair_with_different_dim_generators +
+                        dune_stuff_vector_array_pair_with_different_dim_generators))
 def incompatible_vector_array_pair(request):
     return request.param()
